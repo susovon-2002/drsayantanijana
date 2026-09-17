@@ -2460,8 +2460,17 @@
       checkInModal.classList.remove('is-hidden');
       checkInModal.style.setProperty('display', 'flex', 'important');
     }
+
+    // Never trigger permission-gated browser APIs automatically.
+    // Use network fallback quietly and let the user tap Start Camera only when needed.
     fetchCurrentLocation();
-    startCamera(true);
+    if (vCameraPlaceholder) {
+      vCameraPlaceholder.hidden = false;
+      vCameraPlaceholder.innerHTML = '<span>📷 Camera is ready when you tap “Start Camera”</span>';
+    }
+    if (vSubmitStatus) {
+      vSubmitStatus.hidden = true;
+    }
   }
 
   function updateLocationUI() {
@@ -2510,26 +2519,44 @@
   function fetchCurrentLocation() {
     if (vLocationText) vLocationText.textContent = 'Detecting location...';
 
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          currentGeoCoords = {
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            accuracy: pos.coords.accuracy,
-            label: 'GPS Location'
-          };
-          updateLocationUI();
-        },
-        (err) => {
-          console.warn('GPS error, trying network location:', err);
-          fetchNetworkLocationFallback();
-        },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
-      );
-    } else {
+    // Avoid forcing browser permission prompts on load.
+    // Use a network-based fallback immediately when geolocation is not available or denied.
+    if (!('geolocation' in navigator)) {
       fetchNetworkLocationFallback();
+      return;
     }
+
+    try {
+      const permissions = navigator.permissions && navigator.permissions.query;
+      if (permissions) {
+        permissions.call(navigator.permissions, { name: 'geolocation' })
+          .then((status) => {
+            if (status.state === 'denied') {
+              fetchNetworkLocationFallback();
+              return;
+            }
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                currentGeoCoords = {
+                  lat: pos.coords.latitude,
+                  lng: pos.coords.longitude,
+                  accuracy: pos.coords.accuracy,
+                  label: 'GPS Location'
+                };
+                updateLocationUI();
+              },
+              () => fetchNetworkLocationFallback(),
+              { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
+            );
+          })
+          .catch(() => fetchNetworkLocationFallback());
+        return;
+      }
+    } catch (e) {
+      console.warn('Permission detection unavailable, using fallback location:', e);
+    }
+
+    fetchNetworkLocationFallback();
   }
 
   async function startCamera(autoCapture = true) {
@@ -2538,6 +2565,26 @@
         stopCameraStream();
         return;
       }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (vCameraPlaceholder) {
+          vCameraPlaceholder.hidden = false;
+          vCameraPlaceholder.innerHTML = '<span>📷 Camera is not available on this browser.</span>';
+        }
+        if (vStartCameraBtn) vStartCameraBtn.textContent = 'Start Camera';
+        return;
+      }
+
+      if (autoCapture) {
+        // Do not request camera automatically without an explicit user action.
+        if (vCameraPlaceholder) {
+          vCameraPlaceholder.hidden = false;
+          vCameraPlaceholder.innerHTML = '<span>📷 Tap “Start Camera” to enable the verification snapshot.</span>';
+        }
+        if (vStartCameraBtn) vStartCameraBtn.textContent = 'Start Camera';
+        return;
+      }
+
       if (vStartCameraBtn) vStartCameraBtn.textContent = 'Starting...';
 
       const constraints = {
@@ -2553,22 +2600,12 @@
       if (vCameraPlaceholder) vCameraPlaceholder.hidden = true;
       if (vCaptureBtn) vCaptureBtn.disabled = false;
       if (vStartCameraBtn) vStartCameraBtn.textContent = 'Stop Camera';
-
-      // Auto-capture countdown: snaps automatically and closes modal
-      if (autoCapture) {
-        if (vSubmitStatus) {
-          vSubmitStatus.hidden = false;
-          vSubmitStatus.className = 'vsubmit-status';
-          vSubmitStatus.textContent = '📸 Auto-capturing in 2s...';
-        }
-        if (autoCaptureTimer) clearTimeout(autoCaptureTimer);
-        autoCaptureTimer = setTimeout(() => {
-          captureAndVerify();
-        }, 2000);
-      }
     } catch (err) {
       console.warn('Camera error:', err);
-      showToast('Camera permission needed for verification');
+      if (vCameraPlaceholder) {
+        vCameraPlaceholder.hidden = false;
+        vCameraPlaceholder.innerHTML = '<span>📷 Camera was not enabled. You can keep studying without this step.</span>';
+      }
       if (vStartCameraBtn) vStartCameraBtn.textContent = 'Start Camera';
     }
   }
