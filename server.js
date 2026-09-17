@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const { QUESTIONS } = require('./data.js');
 const {
   findTutorKnowledge,
@@ -27,8 +28,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static frontend files
-app.use(express.static(__dirname));
+// Serve static frontend files from both __dirname and process.cwd()
+app.use(express.static(path.resolve(__dirname)));
+app.use(express.static(path.resolve(process.cwd())));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -393,15 +395,78 @@ app.get('/api/verification/logs', (req, res) => {
   });
 });
 
-// Serve standalone Admin Dashboard
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'admin.html'));
+// Explicit static asset handlers with strict MIME types (essential for Vercel/serverless)
+app.get('/style.css', (req, res) => {
+  const filePath = [
+    path.join(process.cwd(), 'style.css'),
+    path.join(__dirname, 'style.css')
+  ].find(p => fs.existsSync(p));
+  if (filePath) return res.type('text/css').sendFile(filePath);
+  res.status(404).end();
 });
 
-// Catch-all route to serve index.html
+app.get('/script.js', (req, res) => {
+  const filePath = [
+    path.join(process.cwd(), 'script.js'),
+    path.join(__dirname, 'script.js')
+  ].find(p => fs.existsSync(p));
+  if (filePath) return res.type('application/javascript').sendFile(filePath);
+  res.status(404).end();
+});
+
+app.get('/data.js', (req, res) => {
+  const filePath = [
+    path.join(process.cwd(), 'data.js'),
+    path.join(__dirname, 'data.js')
+  ].find(p => fs.existsSync(p));
+  if (filePath) return res.type('application/javascript').sendFile(filePath);
+  res.status(404).end();
+});
+
+app.get('/ai-knowledge.js', (req, res) => {
+  const filePath = [
+    path.join(process.cwd(), 'ai-knowledge.js'),
+    path.join(__dirname, 'ai-knowledge.js')
+  ].find(p => fs.existsSync(p));
+  if (filePath) return res.type('application/javascript').sendFile(filePath);
+  res.status(404).end();
+});
+
+app.get('/admin', (req, res) => {
+  const filePath = [
+    path.join(process.cwd(), 'admin.html'),
+    path.join(__dirname, 'admin.html')
+  ].find(p => fs.existsSync(p));
+  if (filePath) return res.type('text/html').sendFile(filePath);
+  res.status(404).end();
+});
+
+app.get('/admin.html', (req, res) => {
+  const filePath = [
+    path.join(process.cwd(), 'admin.html'),
+    path.join(__dirname, 'admin.html')
+  ].find(p => fs.existsSync(p));
+  if (filePath) return res.type('text/html').sendFile(filePath);
+  res.status(404).end();
+});
+
+// Catch-all route to serve index.html (guarded against assets)
 app.get('*', (req, res) => {
-  const indexPath = path.join(__dirname, 'index.html');
-  res.sendFile(indexPath);
+  if (req.path.match(/\.(css|js|mp4|png|jpg|jpeg|svg|ico|json|map|woff|woff2|ttf)$/i)) {
+    const assetPath = [
+      path.join(process.cwd(), req.path),
+      path.join(__dirname, req.path)
+    ].find(p => fs.existsSync(p));
+    if (assetPath) return res.sendFile(assetPath);
+    return res.status(404).send('Asset not found');
+  }
+
+  const indexPath = [
+    path.join(process.cwd(), 'index.html'),
+    path.join(__dirname, 'index.html')
+  ].find(p => fs.existsSync(p));
+  if (indexPath) return res.sendFile(indexPath);
+  res.status(404).send('Not found');
 });
 
 if (require.main === module) {
