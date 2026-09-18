@@ -67,6 +67,7 @@
   let masteredIds = new Set(loadStorage(STORAGE_MASTERED));
   let voiceSpeed = parseFloat(localStorage.getItem(STORAGE_SPEED)) || 1.0;
   let explanationLang = localStorage.getItem(STORAGE_LANG) || 'en-in'; // 'en-in' | 'bn' | 'auto'
+  let selectedSpeechLanguage = localStorage.getItem(STORAGE_LANG) || 'en-in';
   let aiVoiceSpeed = localStorage.getItem(STORAGE_AI_SPEED) || 'slow'; // 'slow' (0.84) | 'normal' (0.98) | 'fast' (1.18)
 
   const AI_SPEECH_RATES = {
@@ -232,8 +233,9 @@
     globalLangSelect.value = explanationLang;
     globalLangSelect.addEventListener('change', (e) => {
       explanationLang = e.target.value;
+      selectedSpeechLanguage = e.target.value === 'auto' ? 'en-in' : e.target.value;
       localStorage.setItem(STORAGE_LANG, explanationLang);
-      
+
       stopVoice();
       stopAiVoice();
       stopCompletionSpeech();
@@ -244,6 +246,10 @@
 
       const langName = explanationLang === 'bn' ? 'বাংলা Bengali' : (explanationLang === 'en-in' ? '🇮🇳 Indian English' : '🔄 Auto');
       showToast(`🌐 Explanation language set to ${langName}`);
+      updateVoiceStatusBar(
+        'Voice Language Active',
+        explanationLang === 'bn' ? 'Bengali Voice • bn-IN' : 'Indian English • en-IN'
+      );
     });
   }
 
@@ -264,81 +270,130 @@
   // =========================================================================
   // Natural Voice Selection Engine (Web Speech API)
   // =========================================================================
-  function selectNaturalFemaleVoice() {
-    if (!('speechSynthesis' in window)) return null;
-    const voices = window.speechSynthesis.getVoices() || [];
+  function getAvailableVoices() {
+    if (!('speechSynthesis' in window)) return [];
+    return window.speechSynthesis.getVoices() || [];
+  }
+
+  function findIndianEnglishVoice() {
+    const voices = getAvailableVoices();
     if (!voices.length) return null;
 
-    const englishVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
-    const indianVoices = voices.filter(v => (v.lang || '').toLowerCase().replace('_', '-') === 'en-in');
-    const ukVoices = voices.filter(v => (v.lang || '').toLowerCase().replace('_', '-') === 'en-gb');
-    
-    const femaleKeywords = [
-      'female', 'woman', 'girl', 'jenny', 'aria', 'sonia', 'samantha',
-      'victoria', 'karen', 'moira', 'tessa', 'serena', 'fiona', 'veena',
-      'zira', 'ivy', 'joanna', 'kendra', 'kimberly', 'geeta', 'neerja', 'heera',
-      'sangeeta', 'ananya', 'nisha', 'rani', 'meera'
-    ];
+    const preferredNames = /female|woman|girl|samantha|aria|jenny|victoria|karen|sonia|heera|zira|sangeeta|meera|rani|ananya|nisha|neerja|veena|geeta|julia|liam|emma|mary/i;
+    const humanLike = /natural|neural|premium|voice|human|soft|calm|warm|clear/i;
 
     const scoreVoice = (voice) => {
       const name = (voice.name || '').toLowerCase();
-      const lang = (voice.lang || '').toLowerCase();
+      const lang = (voice.lang || '').toLowerCase().replace('_', '-');
       let score = 0;
-      if (lang.includes('en-in')) score += 80;
-      if (lang.includes('en-gb')) score += 35;
-      if (name.includes('natural') || name.includes('neural') || name.includes('online')) score += 40;
-      if (name.includes('female') || femaleKeywords.some(kw => name.includes(kw))) score += 45;
+
+      if (lang === 'en-in') score += 100;
+      else if (lang.startsWith('en-in')) score += 90;
+      else if (lang.startsWith('en')) score += 40;
+
+      if (preferredNames.test(name)) score += 35;
+      if (humanLike.test(name)) score += 25;
+      if (!/robot|droid|ai|synthetic|mono|echo|wave|narrator|voicebot/i.test(name)) score += 15;
       return score;
     };
 
     const ranked = [...voices].sort((a, b) => scoreVoice(b) - scoreVoice(a));
-    const preferred = ranked.find(v => {
-      const name = (v.name || '').toLowerCase();
-      const lang = (v.lang || '').toLowerCase();
-      return (lang.includes('en-in') || lang.includes('en-gb')) &&
-        (femaleKeywords.some(kw => name.includes(kw)) || name.includes('natural') || name.includes('neural'));
-    });
-
-    if (preferred) return preferred;
-    if (indianVoices.length > 0) return indianVoices[0];
-    if (ukVoices.length > 0) return ukVoices[0];
-    if (englishVoices.length > 0) return englishVoices[0];
-    return voices[0];
+    const found = ranked.find(v => scoreVoice(v) > 0 && (v.lang || '').toLowerCase().startsWith('en'));
+    return found || ranked[0] || null;
   }
 
-  function selectBengaliVoice() {
-    if (!('speechSynthesis' in window)) return null;
-    const voices = window.speechSynthesis.getVoices() || [];
+  function findBengaliVoice() {
+    const voices = getAvailableVoices();
     if (!voices.length) return null;
 
-    const femaleKeywords = ['female', 'woman', 'girl', 'tripti', 'swara', 'mithila', 'aditi', 'natural', 'neural', 'online'];
+    const preferredNames = /female|woman|girl|bengali|bangla|swar|tripti|aditi|ananya|nisha|meera|rani|sangeeta|veena|geeta|heera|moira|neerja|mitali|shreya/i;
+    const humanLike = /natural|neural|premium|voice|human|soft|calm|warm|clear/i;
 
-    const scoreBnVoice = (voice) => {
+    const scoreVoice = (voice) => {
       const name = (voice.name || '').toLowerCase();
       const lang = (voice.lang || '').toLowerCase().replace('_', '-');
       let score = 0;
-      if (lang === 'bn-in') score += 100;
-      else if (lang.startsWith('bn')) score += 70;
-      else if (/bangla|bengali|বাংলা/i.test(name)) score += 50;
-      else return -1;
 
-      if (femaleKeywords.some(kw => name.includes(kw))) score += 30;
-      if (name.includes('natural') || name.includes('neural')) score += 20;
+      if (lang === 'bn-in') score += 120;
+      else if (lang.startsWith('bn')) score += 100;
+      else if (/bangla|bengali/i.test(name)) score += 60;
+
+      if (preferredNames.test(name)) score += 35;
+      if (humanLike.test(name)) score += 20;
+      if (!/robot|droid|ai|synthetic|mono|echo|wave|voicebot/i.test(name)) score += 15;
       return score;
     };
 
-    const bnVoices = voices
-      .map(v => ({ voice: v, score: scoreBnVoice(v) }))
-      .filter(item => item.score > 0)
-      .sort((a, b) => b.score - a.score);
+    const ranked = [...voices].sort((a, b) => scoreVoice(b) - scoreVoice(a));
+    const found = ranked.find(v => scoreVoice(v) > 0 && ((v.lang || '').toLowerCase().startsWith('bn') || /bangla|bengali/i.test(v.name || '')));
+    return found || null;
+  }
 
-    return bnVoices.length ? bnVoices[0].voice : null;
+  function getSelectedSpeechLanguage() {
+    const raw = (selectedSpeechLanguage || explanationLang || 'en-in').toLowerCase();
+    if (raw === 'bn') return 'bn';
+    return 'en-in';
+  }
+
+  function updateVoiceStatusBar(labelText, subText) {
+    if (!voicePlayerBar) return;
+    voicePlayerBar.hidden = false;
+    if (playerLabel) playerLabel.textContent = labelText || 'Reading Question #01';
+    if (playerSub) playerSub.textContent = subText || 'Indian English • en-IN';
+  }
+
+  function speakText(text, language, options = {}) {
+    if (!text || !String(text).trim()) return false;
+    if (!('speechSynthesis' in window)) {
+      showToast('Voice unavailable in this browser');
+      return false;
+    }
+
+    const selectedLang = (language || 'en-in').toLowerCase();
+    const normalizedLang = selectedLang === 'bn' ? 'bn' : 'en-in';
+
+    speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(String(text).trim());
+    if (normalizedLang === 'bn') {
+      const bnVoice = findBengaliVoice();
+      if (!bnVoice) {
+        showToast('Bengali voice is not available on this device. Please install or enable a Bengali (bn-IN) voice in your device/browser settings.');
+        return false;
+      }
+      utterance.voice = bnVoice;
+      utterance.lang = 'bn-IN';
+      utterance.rate = 0.82;
+      utterance.pitch = 1.0;
+      updateVoiceStatusBar(options.label || 'Reading Question', options.subText || `Bengali Voice • ${bnVoice.lang || 'bn-IN'}`);
+    } else {
+      const enVoice = findIndianEnglishVoice();
+      if (enVoice) {
+        utterance.voice = enVoice;
+        utterance.lang = enVoice.lang || 'en-IN';
+      } else {
+        utterance.lang = 'en-IN';
+      }
+      utterance.rate = 0.85;
+      utterance.pitch = 1.0;
+      updateVoiceStatusBar(options.label || 'Reading Question', options.subText || `Indian English • ${utterance.lang || 'en-IN'}`);
+    }
+
+    utterance.volume = 1.0;
+    if (options.onStart) utterance.onstart = options.onStart;
+    if (options.onEnd) utterance.onend = options.onEnd;
+    if (options.onError) utterance.onerror = options.onError;
+    if (options.onPause) utterance.onpause = options.onPause;
+    if (options.onResume) utterance.onresume = options.onResume;
+
+    speechSynthesis.speak(utterance);
+    return true;
   }
 
   function refreshAvailableVoices() {
     if (!('speechSynthesis' in window)) return;
-    cachedFemaleVoice = selectNaturalFemaleVoice();
-    cachedBengaliVoice = selectBengaliVoice();
+    cachedFemaleVoice = findIndianEnglishVoice();
+    cachedBengaliVoice = findBengaliVoice();
   }
 
   if ('speechSynthesis' in window) {
@@ -547,44 +602,33 @@
   function speakCompletionMessage() {
     if (!('speechSynthesis' in window)) return;
 
-    // Stop ongoing voices
     stopVoice();
     stopAiVoice();
     stopWelcomeAudio();
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
-    }
 
-    const utterance = new SpeechSynthesisUtterance(BENGALI_COMPLETION_SPEECH);
-    const bnVoice = cachedBengaliVoice || selectBengaliVoice();
-    if (bnVoice) {
-      utterance.voice = bnVoice;
-      utterance.lang = bnVoice.lang || 'bn-IN';
-    } else {
-      utterance.lang = 'bn-IN';
-    }
+    const voiceText = BENGALI_COMPLETION_SPEECH;
+    const started = speakText(voiceText, 'bn', {
+      label: 'Study Timer Complete',
+      subText: 'Bengali Voice • bn-IN',
+      onStart: () => {
+        isSpeakingCompletion = true;
+        updateCompletionVoiceButtons(true);
+      },
+      onEnd: () => {
+        isSpeakingCompletion = false;
+        updateCompletionVoiceButtons(false);
+      },
+      onError: (e) => {
+        console.warn('Completion speech error:', e);
+        isSpeakingCompletion = false;
+        updateCompletionVoiceButtons(false);
+      }
+    });
 
-    utterance.volume = 1.0;
-    utterance.rate = 0.85; // Natural, slow learning pace (0.80 - 0.90)
-    utterance.pitch = 1.02;
-
-    utterance.onstart = () => {
-      isSpeakingCompletion = true;
-      updateCompletionVoiceButtons(true);
-    };
-
-    utterance.onend = () => {
+    if (!started) {
       isSpeakingCompletion = false;
       updateCompletionVoiceButtons(false);
-    };
-
-    utterance.onerror = (e) => {
-      console.warn('Completion speech error:', e);
-      isSpeakingCompletion = false;
-      updateCompletionVoiceButtons(false);
-    };
-
-    window.speechSynthesis.speak(utterance);
+    }
   }
 
   function stopCompletionSpeech() {
@@ -865,54 +909,41 @@
 
     const rawText = type === 'question' ? item.question : item.answer;
     const spokenText = cleanSpokenText(rawText, type === 'answer');
-
     if (!spokenText) {
       showToast('No text available to read.');
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(spokenText);
-    const selectedVoice = cachedFemaleVoice || selectNaturalFemaleVoice();
+    const lang = getSelectedSpeechLanguage();
+    const startLabel = type === 'question' ? `Reading Question #${item.displayIndex}` : `Reading Answer #${item.displayIndex}`;
+    const started = speakText(spokenText, lang, {
+      label: startLabel,
+      subText: lang === 'bn' ? 'Bengali Voice • bn-IN' : 'Indian English • en-IN',
+      onStart: () => {
+        currentAudioItem = item.id;
+        currentAudioType = type;
+        isPaused = false;
+        updateCardVoiceButtons();
+        updatePlayerUI();
+      },
+      onEnd: () => {
+        stopVoice();
+      },
+      onError: (err) => {
+        console.warn('TTS playback error:', err);
+        stopVoice();
+      },
+      onPause: () => {
+        isPaused = true;
+        updatePlayerUI();
+      },
+      onResume: () => {
+        isPaused = false;
+        updatePlayerUI();
+      }
+    });
 
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-      utterance.lang = selectedVoice.lang || 'en-IN';
-    } else {
-      utterance.lang = 'en-IN';
-    }
-
-    utterance.volume = 1.0;
-    utterance.rate = (type === 'question' ? 0.88 : 0.90) * voiceSpeed;
-    utterance.pitch = 1.02;
-
-    utterance.onstart = () => {
-      currentAudioItem = item.id;
-      currentAudioType = type;
-      isPaused = false;
-      updateCardVoiceButtons();
-      updatePlayerUI();
-    };
-
-    utterance.onend = () => {
-      stopVoice();
-    };
-
-    utterance.onerror = (err) => {
-      console.warn('TTS playback error:', err);
-      stopVoice();
-    };
-
-    utterance.onpause = () => {
-      isPaused = true;
-      updatePlayerUI();
-    };
-
-    utterance.onresume = () => {
-      isPaused = false;
-      updatePlayerUI();
-    };
-
-    window.speechSynthesis.speak(utterance);
+    if (!started) return;
   }
 
   function stopVoice() {
@@ -1099,11 +1130,11 @@
 
     if (effectiveLang === 'bn') {
       utterance.lang = 'bn-IN';
-      const bnVoice = cachedBengaliVoice || selectBengaliVoice();
+      const bnVoice = cachedBengaliVoice || findBengaliVoice();
       if (bnVoice) utterance.voice = bnVoice;
     } else {
       utterance.lang = 'en-IN';
-      const enVoice = cachedFemaleVoice || selectNaturalFemaleVoice();
+      const enVoice = cachedFemaleVoice || findIndianEnglishVoice();
       if (enVoice) utterance.voice = enVoice;
     }
 
@@ -1904,11 +1935,11 @@
             stopAiVoice();
             stopCompletionSpeech();
             const text = listenQBtn.dataset.q;
-            const utt = new SpeechSynthesisUtterance(cleanSpokenText(text));
-            utt.lang = 'en-IN';
-            if (cachedFemaleVoice) utt.voice = cachedFemaleVoice;
-            utt.rate = 0.88;
-            window.speechSynthesis.speak(utt);
+            const speechLang = getSelectedSpeechLanguage();
+            speakText(cleanSpokenText(text), speechLang, {
+              label: 'Related Question',
+              subText: speechLang === 'bn' ? 'Bengali Voice • bn-IN' : 'Indian English • en-IN'
+            });
           });
         }
 
@@ -1919,11 +1950,11 @@
             stopAiVoice();
             stopCompletionSpeech();
             const text = listenABtn.dataset.a;
-            const utt = new SpeechSynthesisUtterance(cleanSpokenText(text, true));
-            utt.lang = 'en-IN';
-            if (cachedFemaleVoice) utt.voice = cachedFemaleVoice;
-            utt.rate = 0.90;
-            window.speechSynthesis.speak(utt);
+            const speechLang = getSelectedSpeechLanguage();
+            speakText(cleanSpokenText(text, true), speechLang, {
+              label: 'Related Answer',
+              subText: speechLang === 'bn' ? 'Bengali Voice • bn-IN' : 'Indian English • en-IN'
+            });
           });
         }
       });
