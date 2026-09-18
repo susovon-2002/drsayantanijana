@@ -19,6 +19,13 @@
     ? QUESTIONS
     : (typeof window !== 'undefined' && Array.isArray(window.QUESTIONS) ? window.QUESTIONS : []);
 
+  const fiveMarkQuestions = (typeof FIVE_MARK_QUESTIONS !== 'undefined' && Array.isArray(FIVE_MARK_QUESTIONS))
+    ? FIVE_MARK_QUESTIONS
+    : (typeof window !== 'undefined' && Array.isArray(window.FIVE_MARK_QUESTIONS) ? window.FIVE_MARK_QUESTIONS : []);
+  const threeMarkQuestions = (typeof THREE_MARK_QUESTIONS !== 'undefined' && Array.isArray(THREE_MARK_QUESTIONS)) ? THREE_MARK_QUESTIONS : [];
+  const fourMarkQuestions = (typeof FOUR_MARK_QUESTIONS !== 'undefined' && Array.isArray(FOUR_MARK_QUESTIONS)) ? FOUR_MARK_QUESTIONS : [];
+  const mcqQuestions = (typeof MCQ_QUESTIONS !== 'undefined' && Array.isArray(MCQ_QUESTIONS)) ? MCQ_QUESTIONS : [];
+
   if (!allQuestions || allQuestions.length === 0) {
     console.error('QUESTIONS dataset not loaded.');
     return;
@@ -27,7 +34,10 @@
   // Ensure global availability
   if (typeof window !== 'undefined') {
     window.QUESTIONS = allQuestions;
+    window.FIVE_MARK_QUESTIONS = fiveMarkQuestions;
   }
+
+  let fiveMarkCategoryList = ['All', ...new Set(fiveMarkQuestions.map(q => q.subject || q.cat || 'General'))];
 
   // Category Tag Mapping
   const CATEGORY_TAG_MAP = {
@@ -41,12 +51,105 @@
   allQuestions.forEach((item, index) => {
     item.id = item.id || (index + 1);
     item.strId = 'q_' + item.id;
-    item.displayIndex = String(item.id).padStart(2, '0');
+      item.displayIndex = String(item.id).padStart(2, '0');
     item.tagClass = CATEGORY_TAG_MAP[item.subject || item.cat] || 'tag-community';
     item.priority = item.priority || 'normal';
     item.keywords = item.keywords || [];
     item.answer_version = item.answer_version || 'local-v1';
   });
+
+  fiveMarkQuestions.forEach((item, index) => {
+    item.strId = item.strId || 'q_' + item.id;
+    item.displayIndex = item.displayIndex || String(index + 1).padStart(2, '0');
+      item.subject = item.subject || item.category || 'Nursing';
+    item.cat = item.cat || item.subject;
+    item.tagClass = item.tagClass || CATEGORY_TAG_MAP[item.subject] || 'tag-midwifery';
+    item.priority = item.priority || 'normal';
+    item.answer = item.answer || (Array.isArray(item.answerPoints) ? [
+      ...(item.answerDefinitionLines || []),
+      ...item.answerPoints.map((point, pointIndex) => `${pointIndex + 1}. ${point.heading}: ${point.text}`)
+    ].join('\n\n') : '');
+    item.a = item.answer;
+    item.keywords = Array.isArray(item.keywords) ? item.keywords : [];
+  });
+
+  function prepareQuestionDatasets() {
+    allQuestions.forEach((item, index) => {
+      item.id = item.id || (index + 1);
+      item.strId = 'q_' + item.id;
+      item.displayIndex = String(item.id).padStart(2, '0');
+      item.tagClass = CATEGORY_TAG_MAP[item.subject || item.cat] || 'tag-community';
+      item.priority = item.priority || 'normal';
+      item.keywords = item.keywords || [];
+      item.answer_version = item.answer_version || 'server-v1';
+      item.q = item.q || item.question;
+      item.a = item.a || item.answer;
+    });
+
+    fiveMarkQuestions.forEach((item, index) => {
+      item.strId = item.strId || 'q_' + item.id;
+      item.displayIndex = item.displayIndex || String(index + 1).padStart(2, '0');
+      item.subject = item.subject || item.category || item.cat || 'Nursing';
+      item.cat = item.cat || item.subject;
+      item.tagClass = item.tagClass || CATEGORY_TAG_MAP[item.subject] || 'tag-midwifery';
+      item.priority = item.priority || 'normal';
+      item.answer = item.answer || (Array.isArray(item.answerPoints) ? [
+        ...(item.answerDefinitionLines || []),
+        ...item.answerPoints.map((point, pointIndex) => `${pointIndex + 1}. ${point.heading}: ${point.text || point.description || ''}`)
+      ].join('\n\n') : '');
+      item.a = item.answer;
+      item.keywords = Array.isArray(item.keywords) ? item.keywords : [];
+    });
+
+    threeMarkQuestions.forEach(item => {
+      item.marks = 3;
+      item.answer = item.answer || item.a || '';
+    });
+    fourMarkQuestions.forEach(item => {
+      item.marks = 4;
+      item.answer = item.answer || item.a || '';
+    });
+    mcqQuestions.forEach(item => {
+      item.id = item.id || `mcq-${String(item.mcqNumber || mcqQuestions.indexOf(item) + 1).padStart(3, '0')}`;
+      item.mcqNumber = item.mcqNumber || (mcqQuestions.indexOf(item) + 1);
+      item.correctAnswer = Number(item.correctAnswer || 0);
+      item.options = Array.isArray(item.options) ? item.options : [];
+      item.category = item.category || item.subject || 'Nursing';
+      item.subject = item.subject || item.category;
+      item.topic = item.topic || item.category;
+      item.answer = item.options[item.correctAnswer] || item.correctAnswerText || '';
+    });
+
+    fiveMarkCategoryList = ['All', ...new Set(fiveMarkQuestions.map(q => q.subject || q.cat || 'General'))];
+  }
+
+  function replaceArrayContents(target, nextItems) {
+    target.splice(0, target.length, ...nextItems);
+  }
+
+  async function loadPublishedQuestionsFromServer() {
+    try {
+      const response = await fetch('/api/questions', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      if (!data || !data.ok || !Array.isArray(data.questions)) return;
+
+      const written = data.questions.filter(q => q.type !== 'mcq');
+      replaceArrayContents(allQuestions, written.filter(q => Number(q.marks) === 2));
+      replaceArrayContents(threeMarkQuestions, written.filter(q => Number(q.marks) === 3));
+      replaceArrayContents(fourMarkQuestions, written.filter(q => Number(q.marks) === 4));
+      replaceArrayContents(fiveMarkQuestions, written.filter(q => Number(q.marks) === 5));
+      replaceArrayContents(mcqQuestions, data.questions.filter(q => q.type === 'mcq' || String(q.marks).toLowerCase() === 'mcq'));
+      prepareQuestionDatasets();
+    } catch (err) {
+      console.warn('Published question API unavailable; using bundled question data:', err.message);
+      prepareQuestionDatasets();
+    }
+  }
+
+  function findQuestionById(itemId) {
+    return allQuestions.find(q => String(q.id) === String(itemId)) || fiveMarkQuestions.find(q => String(q.id) === String(itemId));
+  }
 
   // Storage Keys
   const STORAGE_STARRED = 'wbuhs_starred_v1';
@@ -181,8 +284,35 @@
     list: document.getElementById('viewList'),
     flashcards: document.getElementById('viewFlashcards'),
     bookmarks: document.getElementById('viewBookmarks'),
-    mastered: document.getElementById('viewMastered')
+    mastered: document.getElementById('viewMastered'),
+    'five-mark': document.getElementById('viewFiveMark'),
+    'three-mark': document.getElementById('viewThreeMark'),
+    'four-mark': document.getElementById('viewFourMark'),
+    mcq: document.getElementById('viewMcq')
   };
+
+  const welcomeScreen = document.getElementById('welcomeScreen');
+  const sectionSelectionScreen = document.getElementById('sectionSelectionScreen');
+  const skipWelcomeBtn = document.getElementById('skipWelcomeBtn');
+  const startupAppContent = document.querySelectorAll('.startup-app-content');
+  let welcomeTimerId = null;
+  let currentAppScreen = 'welcome';
+  let mcqCurrentIndex = 0;
+  let mcqTimerIntervalId = null;
+  let mcqQuestionStartTimestamp = 0;
+  let mcqActiveQuestionId = null;
+  const MCQ_TIMER_SECONDS = 15;
+  const mcqAttempts = {};
+
+  const fiveMarkCategoryChips = document.getElementById('fiveMarkCategoryChips');
+  const fiveMarkQuestionsContainer = document.getElementById('fiveMarkQuestionsContainer');
+  const fiveMarkCountBadge = document.getElementById('fiveMarkCountBadge');
+  const fiveMarkSearchInput = document.getElementById('fiveMarkSearchInput');
+  const fiveMarkSearchClearBtn = document.getElementById('fiveMarkSearchClearBtn');
+  const fiveMarkEmptyState = document.getElementById('fiveMarkEmptyState');
+  const fiveMarkResetFilterBtn = document.getElementById('fiveMarkResetFilterBtn');
+  let fiveMarkActiveCategory = 'All';
+  let fiveMarkSearchTerm = '';
 
   // =========================================================================
   // Storage & Theme Helpers
@@ -672,18 +802,20 @@
     }
 
     // 4. Find next question
-    const filtered = getFilteredQuestions();
+    const isFiveMarkQuestion = String(currentId).startsWith('5m-');
+    const questionBank = isFiveMarkQuestion ? fiveMarkQuestions : allQuestions;
+    const filtered = isFiveMarkQuestion ? getFilteredFiveMarkQuestions() : getFilteredQuestions();
     const currentIdx = filtered.findIndex(q => q.id === currentId);
     let nextItem = null;
 
     if (currentIdx !== -1 && currentIdx < filtered.length - 1) {
       nextItem = filtered[currentIdx + 1];
     } else {
-      const nextAllIdx = allQuestions.findIndex(q => q.id === currentId) + 1;
-      if (nextAllIdx < allQuestions.length) {
-        nextItem = allQuestions[nextAllIdx];
+      const nextAllIdx = questionBank.findIndex(q => q.id === currentId) + 1;
+      if (nextAllIdx < questionBank.length) {
+        nextItem = questionBank[nextAllIdx];
       } else {
-        nextItem = allQuestions[0]; // loop back to start
+        nextItem = questionBank[0]; // loop back to start
       }
     }
 
@@ -1042,7 +1174,7 @@
     document.querySelectorAll('.voice-btn').forEach(btn => {
       const card = btn.closest('.qcard');
       if (!card) return;
-      const cardId = parseInt(card.dataset.id, 10);
+      const cardId = card.dataset.id;
       const action = btn.dataset.action;
       const isThisAction = (currentAudioItem === cardId && 
         ((action === 'listen-q' && currentAudioType === 'question') || 
@@ -1087,7 +1219,7 @@
       return;
     }
 
-    const item = allQuestions.find(q => q.id === itemId);
+    const item = findQuestionById(itemId);
     if (!item) return;
 
     const settings = getCardSettings(itemId);
@@ -1463,10 +1595,13 @@
 
     const highlightedQuestion = highlightMatches(item.question, searchTerm);
     const highlightedAnswer = highlightMatches(item.answer, searchTerm);
+    const answerHtml = Array.isArray(item.answerPoints)
+      ? `<div class="structured-answer">${item.answerDefinitionLines ? `<div class="answer-definition-label">DEFINITION</div><div class="answer-definition">${item.answerDefinitionLines.map(line => `<div>${escapeHtml(line)}</div>`).join('')}</div>` : ''}<h3>${escapeHtml(item.answerTitle || 'EXAM ANSWER')}</h3>${item.answerPoints.map((point, index) => `<div class="answer-point"><span class="answer-point-number">${index + 1}</span><div><strong>${escapeHtml(point.heading)}</strong><p>${escapeHtml(point.text)}</p></div></div>`).join('')}</div>`
+      : highlightedAnswer;
 
     const settings = getCardSettings(item.id);
     const cardLang = settings.lang || explanationLang;
-    const cardMarks = settings.marks || 2;
+    const cardMarks = item.marks || settings.marks || 2;
 
     const effectiveLang = resolveEffectiveLanguage(cardLang);
     const cacheKey = `${item.id}_${effectiveLang}_${cardMarks}`;
@@ -1475,7 +1610,7 @@
     // Priority badge
     let priorityBadgeHtml = '';
     if (item.priority === 'high-yield') {
-      priorityBadgeHtml = `<span class="badge-priority high-yield">🔴 HIGH-YIELD</span>`;
+      priorityBadgeHtml = `<span class="badge-priority high-yield">${item.marks === 5 ? '🟣 5 MARKS • HIGH-YIELD' : '🔴 HIGH-YIELD'}</span>`;
     } else if (item.priority === 'important') {
       priorityBadgeHtml = `<span class="badge-priority important">⭐ IMPORTANT</span>`;
     }
@@ -1489,7 +1624,7 @@
     const progressPercent = isCompletedTimer ? 100 : (isThisActiveTimer ? ((STUDY_TIMER_SECONDS - remainingSec) / STUDY_TIMER_SECONDS) * 100 : 0);
 
     return `
-      <article class="qcard ${isCardOpen ? 'open' : ''} ${isMastered ? 'mastered' : ''}" id="card_${item.id}" data-id="${item.id}">
+      <article class="qcard ${isCardOpen ? 'open' : ''} ${isMastered ? 'mastered' : ''} ${item.answerPoints ? 'structured-five-mark-card' : ''}" id="card_${item.id}" data-id="${item.id}">
         <button type="button" class="qbutton" aria-expanded="${isCardOpen}" aria-controls="answer_${item.id}">
           <div class="qheader-top">
             <span class="num-badge">${item.displayIndex}</span>
@@ -1538,7 +1673,7 @@
           <div class="answer-header">
             <span class="answer-label-text">📌 EXAM ANSWER</span>
           </div>
-          <div class="answer-body">${highlightedAnswer}</div>
+          <div class="answer-body">${answerHtml}</div>
 
           <!-- Stored Exam Answer Voice Row -->
           <div class="card-voice-row">
@@ -1684,7 +1819,7 @@
     container.querySelectorAll('.qbutton').forEach(btn => {
       btn.addEventListener('click', () => {
         const card = btn.closest('.qcard');
-        const cardId = parseInt(card.dataset.id, 10);
+        const cardId = card.dataset.id;
         const isOpen = card.classList.contains('open');
 
         if (!isOpen) {
@@ -1716,8 +1851,8 @@
         e.stopPropagation();
         const action = btn.dataset.action;
         const card = btn.closest('.qcard');
-        const itemId = parseInt(card.dataset.id, 10);
-        const item = allQuestions.find(q => q.id === itemId);
+        const itemId = card.dataset.id;
+        const item = findQuestionById(itemId);
         if (!item) return;
 
         if (action === 'star') {
@@ -1765,8 +1900,8 @@
     // Card Language select dropdown change
     container.querySelectorAll('.ai-lang-select').forEach(sel => {
       sel.addEventListener('change', async (e) => {
-        const itemId = parseInt(sel.dataset.id, 10);
-        const item = allQuestions.find(q => q.id === itemId);
+        const itemId = sel.dataset.id;
+        const item = findQuestionById(itemId);
         if (!item) return;
 
         const newLang = e.target.value;
@@ -1790,8 +1925,8 @@
     container.querySelectorAll('.ai-marks-pill').forEach(pill => {
       pill.addEventListener('click', async (e) => {
         const marksRow = pill.closest('.ai-marks-pills');
-        const itemId = parseInt(marksRow.dataset.id, 10);
-        const item = allQuestions.find(q => q.id === itemId);
+        const itemId = marksRow.dataset.id;
+        const item = findQuestionById(itemId);
         if (!item) return;
 
         const marks = parseInt(pill.dataset.marks, 10);
@@ -2014,6 +2149,430 @@
     updateActiveTimerDisplay();
   }
 
+  function renderFiveMarkQuestionCard(item) {
+    return renderQuestionCard(item);
+  }
+
+  function getFilteredFiveMarkQuestions() {
+    const q = fiveMarkSearchTerm.trim().toLowerCase();
+    return fiveMarkQuestions.filter(item => {
+      const subject = item.subject || item.cat || '';
+      const matchCategory = fiveMarkActiveCategory === 'All' || subject === fiveMarkActiveCategory;
+      if (!matchCategory) return false;
+      if (!q) return true;
+
+      const questionMatch = (item.question || item.q || '').toLowerCase().includes(q);
+      const answerMatch = (item.answer || item.a || '').toLowerCase().includes(q);
+      const topicMatch = (item.topic || '').toLowerCase().includes(q);
+      const subjectMatch = subject.toLowerCase().includes(q);
+      const keywordMatch = Array.isArray(item.keywords) && item.keywords.some(k => String(k).toLowerCase().includes(q));
+
+      return questionMatch || answerMatch || topicMatch || subjectMatch || keywordMatch;
+    });
+  }
+
+  function renderFiveMarkCategoryChips() {
+    if (!fiveMarkCategoryChips) return;
+    fiveMarkCategoryChips.innerHTML = fiveMarkCategoryList.map(cat => {
+      const count = cat === 'All' ? fiveMarkQuestions.length : fiveMarkQuestions.filter(q => (q.subject || q.cat || 'General') === cat).length;
+      const isActive = cat === fiveMarkActiveCategory;
+      return `
+        <button type="button" class="chip ${isActive ? 'active' : ''}" data-five-mark-cat="${escapeHtml(cat)}" role="tab" aria-selected="${isActive}">
+          <span>${escapeHtml(cat)}</span>
+          <span class="chip-count">${count}</span>
+        </button>
+      `;
+    }).join('');
+
+    fiveMarkCategoryChips.querySelectorAll('.chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        fiveMarkActiveCategory = btn.dataset.fiveMarkCat;
+        renderFiveMarkCategoryChips();
+        renderFiveMarkList();
+      });
+    });
+  }
+
+  function renderFiveMarkList() {
+    if (!fiveMarkQuestionsContainer || !fiveMarkCountBadge) return;
+    const items = getFilteredFiveMarkQuestions();
+    fiveMarkQuestionsContainer.innerHTML = items.map(item => renderFiveMarkQuestionCard(item)).join('');
+
+    fiveMarkCountBadge.textContent = `${items.length} Question${items.length === 1 ? '' : 's'}`;
+    if (fiveMarkEmptyState) fiveMarkEmptyState.hidden = items.length !== 0;
+    bindCardEvents(fiveMarkQuestionsContainer);
+    updateCardVoiceButtons();
+    updateActiveTimerDisplay();
+  }
+
+  function renderHighlightedExamAnswer(answerText) {
+    const lines = String(answerText || '').split(/\n+/).map(line => line.trim()).filter(Boolean);
+    if (!lines.length) return '';
+
+    return `<div class="highlighted-exam-answer">${lines.map(line => {
+      const definitionMatch = line.match(/^Definition:\s*(.*)$/i);
+      const numberedMatch = line.match(/^(\d+)\.\s*([^:]+):\s*(.*)$/);
+      const sectionMatch = line.match(/^([A-Z])\.\s+(.+)$/);
+      const recallMatch = line.match(/^Easy Recall:\s*(.*)$/i);
+
+      if (definitionMatch) {
+        return `<section class="answer-highlight-block definition-block"><span class="highlight-label">DEFINITION</span><p>${escapeHtml(definitionMatch[1])}</p></section>`;
+      }
+      if (sectionMatch) {
+        return `<div class="answer-section-heading"><span>${escapeHtml(sectionMatch[1])}</span>${escapeHtml(sectionMatch[2])}</div>`;
+      }
+      if (numberedMatch) {
+        return `<section class="answer-highlight-block point-block"><span class="answer-point-number">${escapeHtml(numberedMatch[1])}</span><div><strong>${escapeHtml(numberedMatch[2])}</strong><p>${escapeHtml(numberedMatch[3])}</p></div></section>`;
+      }
+      if (recallMatch) {
+        return `<section class="answer-highlight-block recall-block"><span class="highlight-label">EASY RECALL</span><p>${escapeHtml(recallMatch[1])}</p></section>`;
+      }
+      return `<p class="answer-free-line">${escapeHtml(line)}</p>`;
+    }).join('')}</div>`;
+  }
+
+  function renderFoundationQuestion(item, mark) {
+    const isStarred = starredIds.has(item.id);
+    const isMastered = masteredIds.has(item.id);
+    const formattedAnswer = renderHighlightedExamAnswer(item.answer);
+    return `
+      <article class="qcard ${isMastered ? 'mastered' : ''}" data-foundation-id="${escapeHtml(item.id)}">
+        <button type="button" class="qbutton foundation-question-button" aria-expanded="false">
+          <div class="qheader-top"><span class="num-badge">${escapeHtml(item.id)}</span><span class="badge-priority important">${mark}-MARK</span><span class="qmeta-tag tag-community">${escapeHtml(item.subject || item.category || 'Nursing')}</span></div>
+          <div class="qtext-row"><div class="qtext">${escapeHtml(item.question)}</div><span class="chev-icon">˅</span></div>
+        </button>
+        <div class="answer-panel" hidden>
+          <div class="answer-header"><span class="answer-label-text">📌 ${mark}-MARK EXAM ANSWER</span></div>
+          <div class="answer-body answer-body-highlighted">${formattedAnswer}</div>
+          <div class="card-voice-row"><button type="button" class="voice-btn foundation-listen-question"><span class="voice-btn-text">🎧 Listen Question</span></button><button type="button" class="voice-btn foundation-listen-answer"><span class="voice-btn-text">🔊 Listen Answer</span></button></div>
+          <div class="card-actions-bar"><button type="button" class="star-action-btn foundation-star ${isStarred ? 'is-starred' : ''}"><span>${isStarred ? '★ Starred' : '☆ Star'}</span></button><button type="button" class="master-action-btn foundation-master ${isMastered ? 'is-mastered' : ''}"><span>✓ Mastered</span></button></div>
+        </div>
+      </article>`;
+  }
+
+  function renderFoundationQuestions(container, items, mark) {
+    if (!container) return;
+    container.innerHTML = items.map(item => renderFoundationQuestion(item, mark)).join('');
+    container.querySelectorAll('.foundation-question-button').forEach(button => {
+      button.addEventListener('click', () => {
+        const card = button.closest('.qcard');
+        const panel = card.querySelector('.answer-panel');
+        const isOpen = card.classList.toggle('open');
+        button.setAttribute('aria-expanded', String(isOpen));
+        panel.hidden = !isOpen;
+      });
+    });
+    container.querySelectorAll('.qcard').forEach(card => {
+      const item = items.find(question => String(question.id) === card.dataset.foundationId);
+      if (!item) return;
+      card.querySelector('.foundation-listen-question').addEventListener('click', event => { event.stopPropagation(); speakText(item.question); });
+      card.querySelector('.foundation-listen-answer').addEventListener('click', event => { event.stopPropagation(); speakText(item.answer); });
+      card.querySelector('.foundation-star').addEventListener('click', event => { event.stopPropagation(); toggleFoundationState(item, 'star'); });
+      card.querySelector('.foundation-master').addEventListener('click', event => { event.stopPropagation(); toggleFoundationState(item, 'master'); });
+    });
+  }
+
+  function toggleFoundationState(item, state) {
+    const target = state === 'star' ? starredIds : masteredIds;
+    if (target.has(item.id)) target.delete(item.id); else target.add(item.id);
+    saveStorage(state === 'star' ? STORAGE_STARRED : STORAGE_MASTERED, target);
+    updateProgressUI();
+    renderFoundationQuestions(document.getElementById(item.marks === 3 ? 'threeMarkQuestionsContainer' : 'fourMarkQuestionsContainer'), item.marks === 3 ? threeMarkQuestions : fourMarkQuestions, item.marks);
+  }
+
+  function renderNewPracticeSections() {
+    renderFoundationQuestions(document.getElementById('threeMarkQuestionsContainer'), threeMarkQuestions, 3);
+    renderFoundationQuestions(document.getElementById('fourMarkQuestionsContainer'), fourMarkQuestions, 4);
+    if (activeTab === 'mcq') renderMcq();
+  }
+
+  function renderMcq() {
+    const container = document.getElementById('mcqQuestionsContainer');
+    const item = mcqQuestions[mcqCurrentIndex];
+    if (!container) return;
+    if (!item) {
+      container.innerHTML = '<div class="empty-state"><h3>No MCQs found</h3><p>Published MCQs will appear here automatically.</p></div>';
+      return;
+    }
+
+    if (mcqActiveQuestionId !== item.id) {
+      mcqActiveQuestionId = item.id;
+      mcqQuestionStartTimestamp = Date.now();
+      stopMcqTimer();
+      mcqTimerIntervalId = setInterval(updateMcqTimerFromClock, 250);
+    }
+
+    const attempt = mcqAttempts[item.id] || null;
+    const total = mcqQuestions.length;
+    const completed = Object.keys(mcqAttempts).length;
+    const progressPct = total ? Math.round(((mcqCurrentIndex + 1) / total) * 100) : 0;
+    const isStarred = starredIds.has(item.id);
+    const isMastered = masteredIds.has(item.id);
+    const correctText = item.options[item.correctAnswer] || item.correctAnswerText || '';
+
+    container.innerHTML = `
+      <article class="mcq-practice-card" data-mcq-id="${escapeHtml(item.id)}">
+        <div class="mcq-topline">
+          <div>
+            <div class="mcq-kicker">WBUHS • B.Sc. Nursing</div>
+            <h3>MCQ Practice</h3>
+          </div>
+          <div id="mcqTimer" class="mcq-timer" aria-live="polite">⏱️ 00:15</div>
+        </div>
+
+        <div class="mcq-progress-wrap">
+          <div class="mcq-progress-text">Question ${mcqCurrentIndex + 1} of ${total}<span>Completed ${completed} / ${total}</span></div>
+          <div class="mcq-progress-track"><div class="mcq-progress-fill" style="width: ${progressPct}%;"></div></div>
+        </div>
+
+        <div class="mcq-question-box">
+          <span>QUESTION ${escapeHtml(item.mcqNumber || mcqCurrentIndex + 1)}</span>
+          <p>${escapeHtml(item.question)}</p>
+        </div>
+
+        <div class="mcq-options" role="group" aria-label="Answer options">
+          ${item.options.map((option, index) => {
+            const letter = String.fromCharCode(65 + index);
+            let stateClass = '';
+            let stateText = '';
+            if (attempt) {
+              if (index === item.correctAnswer) {
+                stateClass = 'correct';
+                stateText = attempt.timedOut ? '✓ Correct Answer' : '✓ Correct';
+              } else if (index === attempt.selectedAnswer) {
+                stateClass = 'incorrect';
+                stateText = '✗ Your Answer';
+              }
+            }
+            return `<button type="button" class="mcq-option ${stateClass}" data-option-index="${index}" ${attempt ? 'disabled' : ''}><span class="mcq-option-letter">${letter}</span><span class="mcq-option-text">${escapeHtml(option)}</span><span class="mcq-option-state">${stateText}</span></button>`;
+          }).join('')}
+        </div>
+
+        <div id="mcqResultPanel" class="mcq-result-panel ${attempt ? '' : 'is-hidden'} ${attempt && attempt.correct ? 'correct' : ''}">
+          ${attempt ? renderMcqResultPanel(item, attempt, correctText) : ''}
+        </div>
+
+        <div class="mcq-tool-row">
+          <button type="button" class="voice-btn mcq-listen-question">🔊 Listen Question</button>
+          <button type="button" class="voice-btn mcq-listen-answer" ${attempt ? '' : 'disabled'}>🔊 Listen Answer</button>
+          <button type="button" class="star-action-btn mcq-star ${isStarred ? 'is-starred' : ''}">${isStarred ? '★ Starred' : '☆ Star'}</button>
+          <button type="button" class="master-action-btn mcq-master ${isMastered ? 'is-mastered' : ''}" ${attempt ? '' : 'disabled'}>✓ ${isMastered ? 'Mastered' : 'Master'}</button>
+        </div>
+
+        <div class="mcq-ai-tools" ${attempt ? '' : 'hidden'}>
+          <button type="button" class="text-action-btn mcq-ai-btn">🤖 AI Explanation</button>
+          <button type="button" class="text-action-btn mcq-related-btn">💡 Related Questions</button>
+          <div id="mcqAiOutput" class="mcq-extra-output" hidden></div>
+        </div>
+
+        <div class="mcq-nav-row">
+          <button type="button" class="btn-secondary mcq-prev-btn" ${mcqCurrentIndex === 0 ? 'disabled' : ''}>← Previous</button>
+          <button type="button" class="pill-primary-btn mcq-next-btn" ${attempt ? '' : 'disabled'}>${mcqCurrentIndex === total - 1 ? 'Finish Practice' : 'Next Question →'}</button>
+        </div>
+      </article>
+    `;
+
+    bindMcqEvents(item);
+    updateMcqTimerFromClock();
+  }
+
+  function renderMcqResultPanel(item, attempt, correctText) {
+    if (attempt.timedOut) {
+      return `<div class="mcq-time-up">⏰ TIME UP</div><h4>✓ Correct Answer</h4><strong>${escapeHtml(correctText)}</strong><p><b>Why?</b> ${escapeHtml(item.explanation || `The correct answer is ${correctText}.`)}</p>`;
+    }
+    if (attempt.correct) {
+      return `<h4>✓ CORRECT ANSWER</h4><strong>${escapeHtml(correctText)}</strong><p><b>Why?</b> ${escapeHtml(item.explanation || `The correct answer is ${correctText}.`)}</p>`;
+    }
+    return `<h4>✗ Incorrect</h4><strong>✓ Correct Answer: ${escapeHtml(correctText)}</strong><p><b>Why?</b> ${escapeHtml(item.explanation || `The correct answer is ${correctText}.`)}</p>`;
+  }
+
+  function stopMcqTimer() {
+    if (mcqTimerIntervalId) {
+      clearInterval(mcqTimerIntervalId);
+      mcqTimerIntervalId = null;
+    }
+  }
+
+  function updateMcqTimerFromClock() {
+    const item = mcqQuestions[mcqCurrentIndex];
+    if (!item) return;
+    const attempt = mcqAttempts[item.id];
+    const timerEl = document.getElementById('mcqTimer');
+    if (attempt) {
+      stopMcqTimer();
+      if (timerEl) timerEl.textContent = attempt.timedOut ? '⏰ TIME UP' : `⏱️ ${formatTimerDigits(Math.max(0, MCQ_TIMER_SECONDS - Math.round(attempt.timeUsed || 0)))}`;
+      return;
+    }
+    const elapsed = Math.floor((Date.now() - mcqQuestionStartTimestamp) / 1000);
+    const remaining = Math.max(0, MCQ_TIMER_SECONDS - elapsed);
+    if (timerEl) {
+      timerEl.textContent = remaining === 0 ? '⏰ TIME UP' : `⏱️ ${formatTimerDigits(remaining)}`;
+      timerEl.classList.toggle('is-low', remaining <= 5 && remaining > 0);
+      timerEl.classList.toggle('is-up', remaining === 0);
+    }
+    if (remaining <= 0) {
+      completeMcqAttempt(item, null, true);
+    }
+  }
+
+  function completeMcqAttempt(item, selectedAnswer, timedOut) {
+    if (!item || mcqAttempts[item.id]) return;
+    const timeUsed = Math.min(MCQ_TIMER_SECONDS, Math.max(0, (Date.now() - mcqQuestionStartTimestamp) / 1000));
+    mcqAttempts[item.id] = {
+      questionId: item.id,
+      selectedAnswer,
+      correct: selectedAnswer === item.correctAnswer,
+      timedOut,
+      timeUsed
+    };
+    stopMcqTimer();
+    renderMcq();
+  }
+
+  function bindMcqEvents(item) {
+    const container = document.getElementById('mcqQuestionsContainer');
+    if (!container) return;
+    container.querySelectorAll('.mcq-option').forEach(button => {
+      button.addEventListener('click', () => completeMcqAttempt(item, Number(button.dataset.optionIndex), false));
+    });
+    const prevBtn = container.querySelector('.mcq-prev-btn');
+    const nextBtn = container.querySelector('.mcq-next-btn');
+    if (prevBtn) prevBtn.addEventListener('click', () => {
+      if (mcqCurrentIndex > 0) {
+        mcqCurrentIndex -= 1;
+        mcqActiveQuestionId = null;
+        renderMcq();
+      }
+    });
+    if (nextBtn) nextBtn.addEventListener('click', () => {
+      if (!mcqAttempts[item.id]) return;
+      if (mcqCurrentIndex >= mcqQuestions.length - 1) {
+        renderMcqSummary();
+      } else {
+        mcqCurrentIndex += 1;
+        mcqActiveQuestionId = null;
+        renderMcq();
+      }
+    });
+    const listenQuestion = container.querySelector('.mcq-listen-question');
+    const listenAnswer = container.querySelector('.mcq-listen-answer');
+    if (listenQuestion) listenQuestion.addEventListener('click', () => speakText(item.question, getSelectedSpeechLanguage()));
+    if (listenAnswer) listenAnswer.addEventListener('click', () => speakText(`Correct answer. ${item.options[item.correctAnswer] || ''}. ${item.explanation || ''}`, getSelectedSpeechLanguage(), { isAnswer: true }));
+    const starBtn = container.querySelector('.mcq-star');
+    if (starBtn) starBtn.addEventListener('click', () => {
+      if (starredIds.has(item.id)) starredIds.delete(item.id); else starredIds.add(item.id);
+      saveStorage(STORAGE_STARRED, starredIds);
+      updateProgressUI();
+      renderMcq();
+    });
+    const masterBtn = container.querySelector('.mcq-master');
+    if (masterBtn) masterBtn.addEventListener('click', () => {
+      if (!mcqAttempts[item.id]) return;
+      if (masteredIds.has(item.id)) masteredIds.delete(item.id); else masteredIds.add(item.id);
+      saveStorage(STORAGE_MASTERED, masteredIds);
+      updateProgressUI();
+      renderMcq();
+    });
+    const aiBtn = container.querySelector('.mcq-ai-btn');
+    if (aiBtn) aiBtn.addEventListener('click', () => showMcqAiExplanation(item));
+    const relatedBtn = container.querySelector('.mcq-related-btn');
+    if (relatedBtn) relatedBtn.addEventListener('click', () => showMcqRelatedQuestions(item));
+  }
+
+  async function showMcqAiExplanation(item) {
+    const output = document.getElementById('mcqAiOutput');
+    if (!output) return;
+    output.hidden = false;
+    output.textContent = 'Loading AI explanation...';
+    try {
+      const data = await fetchAiExplanation({
+        ...item,
+        answer: `${item.options[item.correctAnswer]}. ${item.explanation || ''}`,
+        subject: item.category || item.subject,
+        marks: 'mcq'
+      }, getSelectedSpeechLanguage(), 2);
+      output.textContent = data.explanation || data || item.explanation || '';
+    } catch (err) {
+      output.textContent = item.explanation || 'The selected answer can be revised from the explanation above.';
+    }
+  }
+
+  function showMcqRelatedQuestions(item) {
+    const output = document.getElementById('mcqAiOutput');
+    if (!output) return;
+    const related = mcqQuestions
+      .filter(q => q.id !== item.id && (q.category === item.category || q.topic === item.topic))
+      .slice(0, 5);
+    output.hidden = false;
+    output.innerHTML = related.length
+      ? `<strong>Related Questions</strong><ol>${related.map(q => `<li>${escapeHtml(q.question)}</li>`).join('')}</ol>`
+      : 'No closely related MCQs found.';
+  }
+
+  function renderMcqSummary() {
+    stopMcqTimer();
+    const container = document.getElementById('mcqQuestionsContainer');
+    if (!container) return;
+    const attempts = Object.values(mcqAttempts);
+    const correct = attempts.filter(a => a.correct).length;
+    const unanswered = attempts.filter(a => a.timedOut).length;
+    const incorrect = attempts.filter(a => !a.correct && !a.timedOut).length;
+    const accuracy = attempts.length ? ((correct / attempts.length) * 100).toFixed(1) : '0.0';
+    container.innerHTML = `
+      <article class="mcq-practice-card mcq-summary-card">
+        <h3>🎉 MCQ Practice Completed</h3>
+        <p class="mcq-summary-big">${attempts.length} / ${mcqQuestions.length} Questions Completed</p>
+        <div class="mcq-score-grid">
+          <div><span>Correct</span><strong>${correct}</strong></div>
+          <div><span>Incorrect</span><strong>${incorrect}</strong></div>
+          <div><span>Unanswered</span><strong>${unanswered}</strong></div>
+          <div><span>Accuracy</span><strong>${accuracy}%</strong></div>
+        </div>
+        <div class="mcq-nav-row">
+          <button type="button" class="btn-secondary mcq-review-btn">Review Answers</button>
+          <button type="button" class="pill-primary-btn mcq-restart-btn">Restart MCQ</button>
+          <button type="button" class="btn-secondary mcq-sections-btn">Back to Practice Sections</button>
+        </div>
+      </article>
+    `;
+    container.querySelector('.mcq-review-btn').addEventListener('click', () => { mcqCurrentIndex = 0; mcqActiveQuestionId = mcqQuestions[0]?.id || null; renderMcq(); });
+    container.querySelector('.mcq-restart-btn').addEventListener('click', () => {
+      Object.keys(mcqAttempts).forEach(key => delete mcqAttempts[key]);
+      mcqCurrentIndex = 0;
+      mcqActiveQuestionId = null;
+      renderMcq();
+    });
+    container.querySelector('.mcq-sections-btn').addEventListener('click', openSectionSelection);
+  }
+
+  if (fiveMarkSearchInput) {
+    fiveMarkSearchInput.addEventListener('input', (e) => {
+      fiveMarkSearchTerm = e.target.value;
+      if (fiveMarkSearchClearBtn) fiveMarkSearchClearBtn.hidden = !fiveMarkSearchTerm;
+      renderFiveMarkList();
+    });
+  }
+
+  if (fiveMarkSearchClearBtn) {
+    fiveMarkSearchClearBtn.addEventListener('click', () => {
+      if (fiveMarkSearchInput) fiveMarkSearchInput.value = '';
+      fiveMarkSearchTerm = '';
+      fiveMarkSearchClearBtn.hidden = true;
+      renderFiveMarkList();
+    });
+  }
+
+  if (fiveMarkResetFilterBtn) {
+    fiveMarkResetFilterBtn.addEventListener('click', () => {
+      fiveMarkSearchTerm = '';
+      fiveMarkActiveCategory = 'All';
+      if (fiveMarkSearchInput) fiveMarkSearchInput.value = '';
+      if (fiveMarkSearchClearBtn) fiveMarkSearchClearBtn.hidden = true;
+      renderFiveMarkCategoryChips();
+      renderFiveMarkList();
+    });
+  }
+
   function renderBookmarks() {
     if (!bookmarksContainer) return;
     const starredItems = allQuestions.filter(q => starredIds.has(q.id));
@@ -2073,6 +2632,7 @@
     renderList();
     renderBookmarks();
     renderMastered();
+    renderFiveMarkList();
     updateFlashcardUI();
   }
 
@@ -2261,10 +2821,85 @@
       renderBookmarks();
     } else if (tabName === 'mastered') {
       renderMastered();
+    } else if (tabName === 'five-mark') {
+      renderFiveMarkCategoryChips();
+      renderFiveMarkList();
+    } else if (tabName === 'three-mark' || tabName === 'four-mark' || tabName === 'mcq') {
+      renderNewPracticeSections();
     } else {
       renderList();
     }
   };
+
+  function applyAppScreen(screen, section) {
+    currentAppScreen = screen;
+    document.body.dataset.appScreen = screen;
+    if (screen === 'welcome') {
+      welcomeScreen.hidden = false;
+      sectionSelectionScreen.hidden = true;
+      startupAppContent.forEach(element => element.classList.add('startup-app-hidden'));
+    } else if (screen === 'sections') {
+      welcomeScreen.hidden = true;
+      sectionSelectionScreen.hidden = false;
+      startupAppContent.forEach(element => element.classList.add('startup-app-hidden'));
+    } else if (screen === 'practice') {
+      welcomeScreen.hidden = true;
+      sectionSelectionScreen.hidden = true;
+      startupAppContent.forEach(element => element.classList.remove('startup-app-hidden'));
+      if (section && viewPanels[section]) window.switchTab(section);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function navigateAppScreen(screen, section) {
+    history.pushState({ wbuhsApp: true, screen, section: section || null }, '', window.location.href);
+    applyAppScreen(screen, section);
+  }
+
+  function openWelcome() {
+    if (welcomeTimerId) clearTimeout(welcomeTimerId);
+    navigateAppScreen('welcome');
+  }
+
+  function openSectionSelection() {
+    if (welcomeTimerId) clearTimeout(welcomeTimerId);
+    navigateAppScreen('sections');
+  }
+
+  function openPracticeSection(section) {
+    navigateAppScreen('practice', section);
+  }
+
+  function initStartupFlow() {
+    history.replaceState({ wbuhsApp: true, screen: 'welcome', section: null }, '', window.location.href);
+    applyAppScreen('welcome');
+    document.querySelectorAll('[data-practice-section]').forEach(button => {
+      button.addEventListener('click', () => openPracticeSection(button.dataset.practiceSection));
+    });
+    document.querySelectorAll('[data-back-sections]').forEach(button => {
+      button.addEventListener('click', () => history.back());
+    });
+    document.querySelectorAll('[data-back-welcome]').forEach(button => {
+      button.addEventListener('click', () => history.back());
+    });
+    if (skipWelcomeBtn) skipWelcomeBtn.addEventListener('click', openSectionSelection);
+    welcomeTimerId = setTimeout(openSectionSelection, 2400);
+  }
+
+  window.addEventListener('popstate', (event) => {
+    const state = event.state;
+    if (!state || !state.wbuhsApp) return;
+    if (welcomeTimerId) clearTimeout(welcomeTimerId);
+    applyAppScreen(state.screen || 'welcome', state.section || null);
+  });
+
+  if (fiveMarkCategoryChips) {
+    renderFiveMarkCategoryChips();
+  }
+
+  if (fiveMarkQuestionsContainer) {
+    renderFiveMarkList();
+  }
 
   dockTabs.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -2764,12 +3399,19 @@
   // =========================================================================
   // Initialize Application
   // =========================================================================
-  initTheme();
-  renderCategoryChips();
-  updateProgressUI();
-  renderAll();
-  initActiveTimerFromStorage();
-  initAutoWelcomeAudio();
-  syncStudyProgressToServer();
+  async function initializeApplication() {
+    await loadPublishedQuestionsFromServer();
+    initTheme();
+    renderCategoryChips();
+    updateProgressUI();
+    renderAll();
+    renderNewPracticeSections();
+    initActiveTimerFromStorage();
+    initAutoWelcomeAudio();
+    syncStudyProgressToServer();
+    initStartupFlow();
+  }
+
+  initializeApplication();
 
 })();

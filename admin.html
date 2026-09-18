@@ -1,541 +1,473 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WBUHS Nursing • Admin Study Verification Portal</title>
+  <title>WBUHS Question Management</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
-    body {
-      background: var(--bg-base);
-      color: var(--text-main);
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-    }
-
-    .admin-container {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 24px 16px 60px;
-    }
-
-    .admin-navbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 16px 20px;
-      background: var(--surface-card);
-      border: 1px solid var(--border-light);
-      border-radius: 16px;
-      margin-bottom: 24px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-    }
-
-    .admin-brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .admin-brand-icon {
-      font-size: 28px;
-    }
-
-    .admin-brand h1 {
-      font-size: 18px;
-      font-weight: 800;
-      margin: 0 0 3px;
-      color: var(--text-main);
-    }
-
-    .admin-brand p {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin: 0;
-    }
-
-    .admin-nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .admin-stat-banner {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .admin-kpi-card {
-      background: var(--surface-card);
-      border: 1px solid var(--border-light);
-      border-radius: 16px;
-      padding: 18px 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-
-    .admin-kpi-label {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: var(--text-muted);
-    }
-
-    .admin-kpi-value {
-      font-size: 28px;
-      font-weight: 800;
-      color: var(--accent-teal);
-      margin-top: 4px;
-      display: block;
-    }
-
-    .admin-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .admin-toolbar-title {
-      font-size: 16px;
-      font-weight: 800;
-    }
-
-    .admin-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 9px 15px;
-      border-radius: 10px;
-      font-family: inherit;
-      font-size: 12.5px;
-      font-weight: 700;
-      cursor: pointer;
-      border: none;
-      transition: all 0.15s ease;
-      text-decoration: none;
-    }
-
-    .admin-btn-primary {
-      background: linear-gradient(135deg, #00A896, #0284C7);
-      color: #FFFFFF;
-      box-shadow: 0 2px 8px rgba(0, 168, 150, 0.35);
-    }
-
-    .admin-btn-secondary {
-      background: var(--surface-active);
-      color: var(--text-main);
-      border: 1px solid var(--border-light);
-    }
-
-    .admin-btn:active {
-      transform: scale(0.96);
-    }
-
-    .admin-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 18px;
-    }
-
-    .verification-card {
-      background: var(--surface-card);
-      border: 1px solid var(--border-light);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.06);
-      display: flex;
-      flex-direction: column;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .verification-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-    }
-
-    .verification-card-img-wrap {
-      width: 100%;
-      height: 210px;
-      background: #0B141F;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .verification-card-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .verification-card-no-img {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #64748B;
-      font-size: 13px;
-    }
-
-    .verification-card-badge {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(16, 185, 129, 0.9);
-      color: #FFFFFF;
-      font-size: 11px;
-      font-weight: 700;
-      padding: 4px 9px;
-      border-radius: 6px;
-      backdrop-filter: blur(4px);
-    }
-
-    .verification-card-body {
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      flex: 1;
-    }
-
-    .student-title {
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--text-main);
-      margin: 0;
-    }
-
-    .student-meta-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .maps-link-btn {
-      margin-top: auto;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      background: rgba(0, 168, 150, 0.12);
-      border: 1px solid rgba(0, 168, 150, 0.3);
-      color: var(--accent-teal);
-      text-decoration: none;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 9px 12px;
-      border-radius: 10px;
-      transition: all 0.15s ease;
-    }
-
-    .maps-link-btn:hover {
-      background: var(--accent-teal);
-      color: #FFFFFF;
-    }
-
-    .empty-logs-placeholder {
-      grid-column: 1 / -1;
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--text-muted);
-      background: var(--surface-card);
-      border: 1px dashed var(--border-light);
-      border-radius: 16px;
+    body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: #f5f7fb; color: #102033; }
+    .admin-shell { max-width: 1180px; margin: 0 auto; padding: 22px 14px 64px; }
+    .admin-hero { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; padding: 22px; border-radius: 18px; color: #fff; background: linear-gradient(135deg, #0f766e, #2563eb); box-shadow: 0 18px 40px rgba(15, 118, 110, .22); }
+    .admin-kicker { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; opacity: .86; }
+    .admin-hero h1 { margin: 7px 0 3px; font-size: clamp(24px, 5vw, 38px); line-height: 1.02; }
+    .admin-hero p { margin: 0; opacity: .9; font-weight: 600; }
+    .admin-key { display: flex; gap: 8px; align-items: center; background: rgba(255,255,255,.14); padding: 10px; border-radius: 12px; }
+    .admin-key input { width: min(260px, 48vw); border: 0; border-radius: 9px; padding: 10px; font: inherit; }
+    .btn { border: 0; border-radius: 10px; padding: 10px 13px; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+    .btn-primary { color: #fff; background: #0f766e; }
+    .btn-blue { color: #fff; background: #2563eb; }
+    .btn-red { color: #fff; background: #dc2626; }
+    .btn-soft { color: #102033; background: #e8eef8; }
+    .dashboard-grid { display: grid; grid-template-columns: repeat(5, minmax(150px, 1fr)); gap: 12px; margin: 18px 0; }
+    .mark-card { background: #fff; border: 1px solid #e3eaf4; border-radius: 14px; padding: 16px; box-shadow: 0 8px 22px rgba(16, 32, 51, .06); }
+    .mark-card strong { display: block; font-size: 18px; margin-bottom: 8px; }
+    .mark-card span { display: block; color: #64748b; font-size: 13px; margin-bottom: 12px; }
+    .admin-layout { display: grid; grid-template-columns: 430px 1fr; gap: 16px; align-items: start; }
+    .panel { background: #fff; border: 1px solid #e3eaf4; border-radius: 16px; box-shadow: 0 8px 22px rgba(16, 32, 51, .06); overflow: hidden; }
+    .panel-head { padding: 15px 16px; border-bottom: 1px solid #e3eaf4; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+    .panel-head h2 { margin: 0; font-size: 18px; }
+    .form-body, .list-body { padding: 16px; }
+    label { display: grid; gap: 6px; font-size: 12px; font-weight: 800; color: #475569; margin-bottom: 12px; }
+    input, select, textarea { width: 100%; box-sizing: border-box; border: 1px solid #d7e0ec; border-radius: 10px; padding: 10px 11px; font: inherit; color: #102033; background: #fff; }
+    textarea { min-height: 84px; resize: vertical; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .point-card { border: 1px solid #e3eaf4; border-radius: 12px; padding: 10px; margin-bottom: 10px; background: #f8fafc; }
+    .point-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; font-weight: 800; color: #64748b; }
+    .form-actions, .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .toolbar { margin-bottom: 12px; }
+    .toolbar input { flex: 1 1 240px; }
+    .toolbar select { flex: 0 0 150px; }
+    .question-list { display: grid; gap: 10px; }
+    .q-admin-card { border: 1px solid #e3eaf4; border-radius: 13px; padding: 13px; background: #fff; }
+    .q-admin-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .q-admin-title { font-weight: 800; line-height: 1.3; }
+    .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .badge { font-size: 11px; font-weight: 800; padding: 4px 7px; border-radius: 999px; background: #e8eef8; color: #334155; }
+    .badge.published { background: #dcfce7; color: #166534; }
+    .badge.draft { background: #fef3c7; color: #92400e; }
+    .badge.seed { background: #e0f2fe; color: #075985; }
+    .q-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+    .status-line { margin: 12px 0 0; min-height: 20px; color: #0f766e; font-weight: 700; font-size: 13px; }
+    .error { color: #dc2626; }
+    [hidden] { display: none !important; }
+    @media (max-width: 900px) {
+      .admin-hero, .admin-layout { grid-template-columns: 1fr; display: grid; }
+      .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .admin-key { align-items: stretch; }
+      .row { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-
-<div class="admin-container">
-  
-  <!-- Header Bar -->
-  <nav class="admin-navbar">
-    <div class="admin-brand">
-      <span class="admin-brand-icon">📊</span>
+  <main class="admin-shell">
+    <header class="admin-hero">
       <div>
-        <h1>Admin Study Verification Portal</h1>
-        <p>WBUHS B.Sc. Nursing 7th Sem • Real-time Attendance & Location Log</p>
+        <div class="admin-kicker">WBUHS • B.Sc. Nursing • 7th Semester</div>
+        <h1>Question Management</h1>
+        <p>Add, edit, publish and organize student questions without editing JavaScript files.</p>
       </div>
-    </div>
-    <div class="admin-nav-actions">
-      <a href="index.html" class="admin-btn admin-btn-secondary">← Back to Student Website</a>
-      <button id="refreshBtn" class="admin-btn admin-btn-primary">🔄 Refresh Logs</button>
-    </div>
-  </nav>
-
-  <!-- KPI Banner -->
-  <div class="admin-stat-banner">
-    <div class="admin-kpi-card" style="border-left: 4px solid var(--accent-teal);">
-      <span class="admin-kpi-label">📖 Questions Read by Student</span>
-      <span id="kpiQuestionsRead" class="admin-kpi-value" style="color: var(--accent-teal);">0 / 80</span>
-      <div style="width: 100%; height: 6px; background: var(--surface-active); border-radius: 4px; overflow: hidden; margin-top: 6px;">
-        <div id="kpiQuestionsBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #00A896, #38BDF8); transition: width 0.4s ease;"></div>
+      <div class="admin-key">
+        <input id="adminKeyInput" type="password" placeholder="Admin key">
+        <button id="saveAdminKeyBtn" class="btn btn-soft" type="button">Use Key</button>
       </div>
-      <span id="kpiQuestionsPercent" style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">0% completed</span>
-    </div>
-    <div class="admin-kpi-card">
-      <span class="admin-kpi-label">Verified Check-In Sessions</span>
-      <span id="kpiTotalSessions" class="admin-kpi-value">0</span>
-      <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">Attendance snapshots</span>
-    </div>
-    <div class="admin-kpi-card">
-      <span class="admin-kpi-label">Student Tracked</span>
-      <span class="admin-kpi-value" style="font-size: 19px; color: var(--text-main);">Sayantani Hauri</span>
-      <span style="font-size: 11px; color: #10B981; display: block; margin-top: 4px;">সায়ন্তনী বাবু হাউরি</span>
-    </div>
-    <div class="admin-kpi-card">
-      <span class="admin-kpi-label">Monitoring Status</span>
-      <span class="admin-kpi-value" style="font-size: 18px; color: #10B981;">🟢 Live Sync</span>
-      <span id="lastActiveText" style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">Listening for updates</span>
-    </div>
-  </div>
+    </header>
 
-  <!-- Records Toolbar -->
-  <div class="admin-toolbar">
-    <div class="admin-toolbar-title">Captured Study Sessions</div>
-    <label style="font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; cursor: pointer;">
-      <input type="checkbox" id="autoRefreshCheckbox" checked> Auto-refresh every 10s
-    </label>
-  </div>
+    <section id="dashboardGrid" class="dashboard-grid" aria-label="Question counts"></section>
 
-  <!-- Records Grid -->
-  <div id="logsGrid" class="admin-grid" style="margin-bottom: 32px;">
-    <div class="empty-logs-placeholder">Loading verification records...</div>
-  </div>
-
-  <!-- Questions Read Detailed Section -->
-  <div class="admin-toolbar" style="margin-top: 24px;">
-    <div class="admin-toolbar-title">📚 Questions Read by Sayantani Hauri (<span id="questionsReadTitleCount">0</span>/80)</div>
-  </div>
-  <div id="questionsReadContainer" style="background: var(--surface-card); border: 1px solid var(--border-light); border-radius: 16px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-    <div class="empty-logs-placeholder" style="padding: 30px 20px;">
-      Loading student questions read data...
-    </div>
-  </div>
-
-</div>
-
-<script>
-  const logsGrid = document.getElementById('logsGrid');
-  const kpiTotalSessions = document.getElementById('kpiTotalSessions');
-  const kpiQuestionsRead = document.getElementById('kpiQuestionsRead');
-  const kpiQuestionsBar = document.getElementById('kpiQuestionsBar');
-  const kpiQuestionsPercent = document.getElementById('kpiQuestionsPercent');
-  const questionsReadTitleCount = document.getElementById('questionsReadTitleCount');
-  const questionsReadContainer = document.getElementById('questionsReadContainer');
-  const lastActiveText = document.getElementById('lastActiveText');
-  const refreshBtn = document.getElementById('refreshBtn');
-  const autoRefreshCheckbox = document.getElementById('autoRefreshCheckbox');
-
-  function renderQuestionsReadSection(progress) {
-    if (!progress || !progress.questionsReadList || progress.questionsReadList.length === 0) {
-      questionsReadContainer.innerHTML = `
-        <div style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
-          <div style="font-size: 32px; margin-bottom: 8px;">📖</div>
-          <strong>No questions read yet</strong>
-          <p style="font-size: 12px; margin-top: 4px; max-width: 400px; margin-left: auto; margin-right: auto;">
-            When Sayantani reads or completes the 3-minute focused study timer for questions on the website, they will appear here in real time.
-          </p>
+    <section class="admin-layout">
+      <form id="questionForm" class="panel">
+        <div class="panel-head">
+          <h2 id="formTitle">Add New Question</h2>
+          <button id="resetFormBtn" class="btn btn-soft" type="button">New</button>
         </div>
-      `;
-      return;
-    }
-
-    questionsReadContainer.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        ${progress.questionsReadList.map((q, idx) => {
-          const dateStr = q.completedAt ? new Date(q.completedAt).toLocaleString() : 'Recently';
-          return `
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; background: var(--surface-elevated); border: 1px solid var(--border-light); border-radius: 10px; flex-wrap: wrap;">
-              <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
-                <span style="font-size: 11px; font-weight: 800; color: var(--accent-teal); background: rgba(0, 168, 150, 0.12); padding: 2px 8px; border-radius: 6px; flex-shrink: 0;">#${q.id}</span>
-                <span style="font-size: 12.5px; font-weight: 700; color: var(--text-main); line-height: 1.4;">${escapeHtml(q.question)}</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-                <span style="font-size: 10.5px; font-weight: 700; background: var(--surface-active); color: var(--text-secondary); padding: 3px 8px; border-radius: 6px;">${escapeHtml(q.subject || 'Nursing')}</span>
-                <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;">🕒 ${dateStr}</span>
-              </div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
-  }
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
-
-  async function loadLogs() {
-    try {
-      const res = await fetch('/api/verification/logs');
-      const data = await res.json();
-
-      // Update Questions Read KPI
-      const readCount = (data.progress && typeof data.progress.questionsReadCount === 'number')
-        ? data.progress.questionsReadCount
-        : 0;
-      const totalQ = (data.progress && data.progress.totalQuestions) ? data.progress.totalQuestions : 80;
-      const percent = Math.min(100, Math.round((readCount / totalQ) * 100));
-
-      if (kpiQuestionsRead) kpiQuestionsRead.textContent = `${readCount} / ${totalQ}`;
-      if (kpiQuestionsBar) kpiQuestionsBar.style.width = `${percent}%`;
-      if (kpiQuestionsPercent) kpiQuestionsPercent.textContent = `${percent}% of syllabus completed`;
-      if (questionsReadTitleCount) questionsReadTitleCount.textContent = String(readCount);
-
-      if (data.progress && data.progress.lastActive && lastActiveText) {
-        lastActiveText.textContent = `Last active: ${new Date(data.progress.lastActive).toLocaleTimeString()}`;
-      }
-
-      renderQuestionsReadSection(data.progress);
-
-      if (!data.ok || !data.logs || data.logs.length === 0) {
-        logsGrid.innerHTML = `
-          <div class="empty-logs-placeholder">
-            <div style="font-size: 32px; margin-bottom: 8px;">📷</div>
-            <strong>No study sessions verified yet</strong>
-            <p style="font-size: 12px; margin-top: 4px;">Student check-ins submitted via the website will appear here in real time.</p>
+        <div class="form-body">
+          <input id="editingId" type="hidden">
+          <label>Question ID <input id="questionId" placeholder="Example: 5m-puerperal-sepsis"></label>
+          <div class="row">
+            <label>Marks
+              <select id="marksSelect" required>
+                <option value="2">2 Marks</option>
+                <option value="3">3 Marks</option>
+                <option value="4">4 Marks</option>
+                <option value="5">5 Marks</option>
+                <option value="mcq">MCQ</option>
+              </select>
+            </label>
+            <label>Status
+              <select id="statusSelect">
+                <option value="published">Published</option>
+                <option value="draft">Draft</option>
+              </select>
+            </label>
           </div>
-        `;
-        kpiTotalSessions.textContent = '0';
-        return;
+          <label>Question <textarea id="questionText" required></textarea></label>
+          <div class="row">
+            <label>Category <input id="categoryInput" placeholder="Midwifery & Obstetrical Nursing"></label>
+            <label>Topic <input id="topicInput" placeholder="Puerperal Sepsis"></label>
+          </div>
+          <label>Priority
+            <select id="prioritySelect">
+              <option value="high-yield">High-Yield</option>
+              <option value="important">Important</option>
+              <option value="practice">Practice</option>
+            </select>
+          </label>
+
+          <div id="writtenEditor">
+            <label>Answer Title <input id="answerTitleInput" placeholder="Optional heading"></label>
+            <label>Definition / Concise Answer <textarea id="definitionInput"></textarea></label>
+            <div class="panel-head" style="padding: 0 0 10px; border: 0;">
+              <h2 style="font-size: 15px;">Main Points</h2>
+              <button id="addPointBtn" class="btn btn-soft" type="button">+ Point</button>
+            </div>
+            <div id="pointsEditor"></div>
+            <label>Additional Notes <textarea id="notesInput" placeholder="Optional"></textarea></label>
+          </div>
+
+          <div id="mcqEditor" hidden>
+            <div class="row">
+              <label>Option A <input class="mcq-option-input" data-index="0"></label>
+              <label>Option B <input class="mcq-option-input" data-index="1"></label>
+              <label>Option C <input class="mcq-option-input" data-index="2"></label>
+              <label>Option D <input class="mcq-option-input" data-index="3"></label>
+            </div>
+            <label>Correct Answer
+              <select id="correctAnswerSelect">
+                <option value="0">A</option>
+                <option value="1">B</option>
+                <option value="2">C</option>
+                <option value="3">D</option>
+              </select>
+            </label>
+            <label>Explanation <textarea id="mcqExplanationInput"></textarea></label>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit">Save Question</button>
+            <button id="saveDraftBtn" class="btn btn-soft" type="button">Save Draft</button>
+          </div>
+          <div id="formStatus" class="status-line"></div>
+        </div>
+      </form>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Questions List</h2>
+          <button id="reloadBtn" class="btn btn-soft" type="button">Refresh</button>
+        </div>
+        <div class="list-body">
+          <div class="toolbar">
+            <input id="searchInput" type="search" placeholder="Search question, topic, category, marks, ID">
+            <select id="filterSelect">
+              <option value="all">All</option>
+              <option value="2">2 Marks</option>
+              <option value="3">3 Marks</option>
+              <option value="4">4 Marks</option>
+              <option value="5">5 Marks</option>
+              <option value="mcq">MCQ</option>
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+              <option value="high-yield">High-Yield</option>
+            </select>
+          </div>
+          <div id="listStatus" class="status-line"></div>
+          <div id="questionList" class="question-list"></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const state = { questions: [], editing: null };
+    const els = {
+      adminKey: document.getElementById('adminKeyInput'),
+      saveKey: document.getElementById('saveAdminKeyBtn'),
+      dashboard: document.getElementById('dashboardGrid'),
+      form: document.getElementById('questionForm'),
+      formTitle: document.getElementById('formTitle'),
+      editingId: document.getElementById('editingId'),
+      questionId: document.getElementById('questionId'),
+      marks: document.getElementById('marksSelect'),
+      status: document.getElementById('statusSelect'),
+      question: document.getElementById('questionText'),
+      category: document.getElementById('categoryInput'),
+      topic: document.getElementById('topicInput'),
+      priority: document.getElementById('prioritySelect'),
+      written: document.getElementById('writtenEditor'),
+      mcq: document.getElementById('mcqEditor'),
+      answerTitle: document.getElementById('answerTitleInput'),
+      definition: document.getElementById('definitionInput'),
+      points: document.getElementById('pointsEditor'),
+      notes: document.getElementById('notesInput'),
+      correct: document.getElementById('correctAnswerSelect'),
+      explanation: document.getElementById('mcqExplanationInput'),
+      formStatus: document.getElementById('formStatus'),
+      listStatus: document.getElementById('listStatus'),
+      list: document.getElementById('questionList'),
+      search: document.getElementById('searchInput'),
+      filter: document.getElementById('filterSelect')
+    };
+
+    els.adminKey.value = sessionStorage.getItem('wbuhs_admin_key') || '';
+
+    function adminHeaders() {
+      return { 'Content-Type': 'application/json', 'x-admin-key': sessionStorage.getItem('wbuhs_admin_key') || '' };
+    }
+
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[ch]));
+    }
+
+    function setStatus(target, message, isError = false) {
+      target.textContent = message || '';
+      target.classList.toggle('error', Boolean(isError));
+    }
+
+    function pointRow(point = {}, index = 0) {
+      const wrap = document.createElement('div');
+      wrap.className = 'point-card';
+      wrap.innerHTML = `
+        <div class="point-title"><span>Point ${index + 1}</span><button class="btn btn-soft remove-point" type="button">Remove</button></div>
+        <label>Heading <input class="point-heading" value="${escapeHtml(point.heading || '')}"></label>
+        <label>Description <textarea class="point-text">${escapeHtml(point.text || point.description || '')}</textarea></label>
+      `;
+      wrap.querySelector('.remove-point').addEventListener('click', () => wrap.remove());
+      return wrap;
+    }
+
+    function addPoint(point) {
+      els.points.appendChild(pointRow(point, els.points.children.length));
+    }
+
+    function resetForm() {
+      state.editing = null;
+      els.form.reset();
+      els.editingId.value = '';
+      els.points.innerHTML = '';
+      addPoint();
+      addPoint();
+      updateEditorMode();
+      els.formTitle.textContent = 'Add New Question';
+      setStatus(els.formStatus, '');
+    }
+
+    function updateEditorMode() {
+      const isMcq = els.marks.value === 'mcq';
+      els.written.hidden = isMcq;
+      els.mcq.hidden = !isMcq;
+    }
+
+    function getPayload(forcedStatus) {
+      const marks = els.marks.value;
+      const payload = {
+        id: els.questionId.value.trim(),
+        marks,
+        status: forcedStatus || els.status.value,
+        priority: els.priority.value,
+        question: els.question.value.trim(),
+        category: els.category.value.trim() || 'Nursing',
+        subject: els.category.value.trim() || 'Nursing',
+        topic: els.topic.value.trim()
+      };
+
+      if (!payload.question) throw new Error('Question is required.');
+      if (!payload.marks) throw new Error('Marks is required.');
+
+      if (marks === 'mcq') {
+        const options = [...document.querySelectorAll('.mcq-option-input')].map(input => input.value.trim());
+        if (options.some(option => !option)) throw new Error('All four MCQ options are required.');
+        payload.options = options;
+        payload.correctAnswer = Number(els.correct.value);
+        payload.explanation = els.explanation.value.trim();
+        if (!payload.explanation) throw new Error('MCQ explanation is required.');
+      } else {
+        payload.answerTitle = els.answerTitle.value.trim();
+        payload.definition = els.definition.value.trim();
+        payload.answerDefinitionLines = payload.definition ? [payload.definition] : [];
+        payload.answerPoints = [...els.points.querySelectorAll('.point-card')].map(card => ({
+          heading: card.querySelector('.point-heading').value.trim(),
+          text: card.querySelector('.point-text').value.trim()
+        })).filter(point => point.heading || point.text);
+        payload.additionalNotes = els.notes.value.trim();
+        payload.answer = [
+          payload.definition,
+          ...payload.answerPoints.map((point, index) => `${index + 1}. ${point.heading}: ${point.text}`),
+          payload.additionalNotes
+        ].filter(Boolean).join('\n\n');
+        if (!payload.answer) throw new Error('Answer is required for written questions.');
       }
+      return payload;
+    }
 
-      kpiTotalSessions.textContent = String(data.count);
+    async function api(path, options = {}) {
+      const response = await fetch(path, {
+        ...options,
+        headers: { ...adminHeaders(), ...(options.headers || {}) },
+        cache: 'no-store'
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.ok === false) throw new Error(data.error || `HTTP ${response.status}`);
+      return data;
+    }
 
-      logsGrid.innerHTML = data.logs.map(log => {
-        const timeStr = new Date(log.timestamp).toLocaleString(undefined, {
-          dateStyle: 'medium',
-          timeStyle: 'medium'
-        });
-
-        const hasCoords = (log.latitude !== null && log.longitude !== null);
-        const coordsStr = hasCoords
-          ? `${log.locationName ? log.locationName + ' • ' : ''}${log.latitude.toFixed(4)}° N, ${log.longitude.toFixed(4)}° E`
-          : (log.locationName || 'GPS not available');
-
-        const mapBtn = hasCoords
-          ? `<a href="https://www.google.com/maps?q=${log.latitude},${log.longitude}" target="_blank" rel="noopener" class="maps-link-btn">
-               🗺️ View on Google Maps
-             </a>`
-          : '<div style="font-size:11.5px;color:var(--text-muted);margin-top:auto;">No location coordinates</div>';
-
-        const qReadBadge = typeof log.questionsReadCount === 'number'
-          ? `<div style="font-size: 11.5px; font-weight: 700; color: var(--accent-teal); background: rgba(0, 168, 150, 0.1); padding: 4px 8px; border-radius: 6px; margin-top: 4px;">
-               📖 ${log.questionsReadCount} / 80 Questions Read at Check-In
-             </div>`
-          : '';
-
-        return `
-          <article class="verification-card">
-            <div class="verification-card-img-wrap">
-              ${log.imageBase64 
-                ? `<img src="${log.imageBase64}" alt="Attendance snapshot" class="verification-card-img">`
-                : `<div class="verification-card-no-img">No camera photo captured</div>`}
-              <span class="verification-card-badge">✓ Verified</span>
-            </div>
-            <div class="verification-card-body">
-              <h3 class="student-title">${log.studentName || 'Sayantani Hauri'}</h3>
-              <div class="student-meta-item">
-                <span>🕒</span>
-                <span>${timeStr}</span>
-              </div>
-              <div class="student-meta-item">
-                <span>📍</span>
-                <span>${coordsStr}</span>
-              </div>
-              ${qReadBadge}
-              ${mapBtn}
-            </div>
-          </article>
-        `;
-      }).join('');
-    } catch (err) {
-      console.warn('Server logs unavailable, checking localStorage for GitHub Pages mode:', err);
+    async function loadQuestions() {
+      setStatus(els.listStatus, 'Loading questions...');
       try {
-        const localLogs = JSON.parse(localStorage.getItem('wbuhs_verification_logs') || '[]');
-        const localStudy = JSON.parse(localStorage.getItem('wbuhs_study_history_v1') || '{}');
-        const readKeys = Object.keys(localStudy);
-        const progress = {
-          studentName: 'Sayantani Hauri',
-          totalQuestions: 80,
-          questionsReadCount: readKeys.length,
-          questionsReadList: readKeys.map(k => ({
-            id: Number(k),
-            question: `Question #${k} (Studied with 3-Min Timer)`,
-            subject: 'B.Sc. Nursing',
-            completedAt: localStudy[k]?.lastStudiedAt || Date.now()
-          }))
-        };
-
-        const percent = Math.min(100, Math.round((readKeys.length / 80) * 100));
-        if (kpiQuestionsRead) kpiQuestionsRead.textContent = `${readKeys.length} / 80`;
-        if (kpiQuestionsBar) kpiQuestionsBar.style.width = `${percent}%`;
-        if (kpiQuestionsPercent) kpiQuestionsPercent.textContent = `${percent}% of syllabus completed`;
-        if (questionsReadTitleCount) questionsReadTitleCount.textContent = String(readKeys.length);
-        if (kpiTotalSessions) kpiTotalSessions.textContent = String(localLogs.length);
-        renderQuestionsReadSection(progress);
-
-        if (localLogs.length > 0) {
-          logsGrid.innerHTML = localLogs.map(log => {
-            const timeStr = new Date(log.timestamp).toLocaleString();
-            const hasCoords = (log.latitude !== null && log.longitude !== null);
-            const coordsStr = hasCoords
-              ? `${log.locationName ? log.locationName + ' • ' : ''}${log.latitude.toFixed(4)}° N, ${log.longitude.toFixed(4)}° E`
-              : (log.locationName || 'GPS not available');
-            const mapBtn = hasCoords
-              ? `<a href="https://www.google.com/maps?q=${log.latitude},${log.longitude}" target="_blank" rel="noopener" class="maps-link-btn">🗺️ View on Google Maps</a>`
-              : '<div style="font-size:11.5px;color:var(--text-muted);margin-top:auto;">No location coordinates</div>';
-            return `
-              <article class="verification-card">
-                <div class="verification-card-img-wrap">
-                  ${log.imageBase64 ? `<img src="${log.imageBase64}" alt="Attendance snapshot" class="verification-card-img">` : '<div class="verification-card-no-img">No camera photo captured</div>'}
-                  <span class="verification-card-badge">✓ Verified</span>
-                </div>
-                <div class="verification-card-body">
-                  <h3 class="student-title">${log.studentName || 'Sayantani Hauri'}</h3>
-                  <div class="student-meta-item"><span>🕒</span><span>${timeStr}</span></div>
-                  <div class="student-meta-item"><span>📍</span><span>${coordsStr}</span></div>
-                  <div style="font-size: 11.5px; font-weight: 700; color: var(--accent-teal); background: rgba(0, 168, 150, 0.1); padding: 4px 8px; border-radius: 6px; margin-top: 4px;">
-                    📖 ${log.questionsReadCount || readKeys.length} / 80 Questions Read
-                  </div>
-                  ${mapBtn}
-                </div>
-              </article>
-            `;
-          }).join('');
-        }
-      } catch (localErr) {
-        console.warn('Local fallback error:', localErr);
+        const data = await api('/api/admin/questions');
+        state.questions = data.questions || [];
+        renderDashboard(data.counts || {});
+        renderList();
+        setStatus(els.listStatus, `${state.questions.length} questions loaded.`);
+      } catch (err) {
+        setStatus(els.listStatus, err.message, true);
       }
     }
-  }
 
-  refreshBtn.addEventListener('click', loadLogs);
-  loadLogs();
-
-  // Auto-refresh timer
-  setInterval(() => {
-    if (autoRefreshCheckbox && autoRefreshCheckbox.checked) {
-      loadLogs();
+    function renderDashboard(counts) {
+      const cards = [
+        ['2', '2 MARKS'], ['3', '3 MARKS'], ['4', '4 MARKS'], ['5', '5 MARKS'], ['mcq', 'MCQ']
+      ];
+      els.dashboard.innerHTML = cards.map(([key, label]) => `
+        <article class="mark-card">
+          <strong>${label}</strong>
+          <span>Total Questions: ${counts[key] || 0}</span>
+          <button class="btn btn-blue add-for-mark" data-mark="${key}" type="button">+ Add Question</button>
+        </article>
+      `).join('');
+      document.querySelectorAll('.add-for-mark').forEach(btn => btn.addEventListener('click', () => {
+        resetForm();
+        els.marks.value = btn.dataset.mark;
+        updateEditorMode();
+        window.scrollTo({ top: document.querySelector('.admin-layout').offsetTop - 12, behavior: 'smooth' });
+      }));
     }
-  }, 10000);
-</script>
 
+    function matchesFilter(q) {
+      const filter = els.filter.value;
+      if (filter === 'all') return true;
+      if (['2', '3', '4', '5', 'mcq'].includes(filter)) return String(q.marks).toLowerCase() === filter;
+      if (filter === 'published' || filter === 'draft') return q.status === filter;
+      if (filter === 'high-yield') return q.priority === 'high-yield';
+      return true;
+    }
+
+    function matchesSearch(q) {
+      const term = els.search.value.trim().toLowerCase();
+      if (!term) return true;
+      return [q.id, q.question, q.topic, q.category, q.subject, q.marks].some(value => String(value || '').toLowerCase().includes(term));
+    }
+
+    function renderList() {
+      const items = state.questions.filter(q => matchesFilter(q) && matchesSearch(q));
+      els.list.innerHTML = items.map(q => `
+        <article class="q-admin-card">
+          <div class="q-admin-top">
+            <div>
+              <div class="q-admin-title">${escapeHtml(q.question)}</div>
+              <div class="badges">
+                <span class="badge">${escapeHtml(q.id)}</span>
+                <span class="badge">${String(q.marks).toUpperCase()}${q.marks === 'mcq' ? '' : ' Marks'}</span>
+                <span class="badge">${escapeHtml(q.category || q.subject || 'Nursing')}</span>
+                <span class="badge ${q.status}">${escapeHtml(q.status)}</span>
+                <span class="badge">${escapeHtml(q.priority)}</span>
+                ${q.source === 'seed' ? '<span class="badge seed">Built-in</span>' : ''}
+              </div>
+            </div>
+          </div>
+          <div class="q-actions">
+            <button class="btn btn-soft edit-btn" data-id="${escapeHtml(q.id)}" type="button">Edit</button>
+            <button class="btn btn-blue publish-btn" data-id="${escapeHtml(q.id)}" data-published="${q.status !== 'published'}" ${q.source === 'seed' ? 'disabled' : ''} type="button">${q.status === 'published' ? 'Unpublish' : 'Publish'}</button>
+            <button class="btn btn-red delete-btn" data-id="${escapeHtml(q.id)}" ${q.source === 'seed' ? 'disabled' : ''} type="button">Delete</button>
+          </div>
+        </article>
+      `).join('');
+
+      document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', () => editQuestion(btn.dataset.id)));
+      document.querySelectorAll('.publish-btn').forEach(btn => btn.addEventListener('click', () => publishQuestion(btn.dataset.id, btn.dataset.published === 'true')));
+      document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', () => deleteQuestion(btn.dataset.id)));
+    }
+
+    function editQuestion(id) {
+      const q = state.questions.find(item => String(item.id) === String(id));
+      if (!q) return;
+      if (q.source === 'seed') setStatus(els.formStatus, 'Built-in questions are preserved. Saving will create an admin-managed copy.', false);
+      state.editing = q.source === 'seed' ? null : q.id;
+      els.formTitle.textContent = state.editing ? 'Edit Question' : 'Duplicate Built-in Question';
+      els.editingId.value = state.editing || '';
+      els.questionId.value = q.source === 'seed' ? '' : q.id;
+      els.marks.value = String(q.marks);
+      els.status.value = q.status || 'published';
+      els.question.value = q.question || '';
+      els.category.value = q.category || q.subject || '';
+      els.topic.value = q.topic || '';
+      els.priority.value = q.priority || 'important';
+      els.answerTitle.value = q.answerTitle || '';
+      els.definition.value = q.definition || (Array.isArray(q.answerDefinitionLines) ? q.answerDefinitionLines.join('\n') : '');
+      els.notes.value = q.additionalNotes || '';
+      els.points.innerHTML = '';
+      (Array.isArray(q.answerPoints) && q.answerPoints.length ? q.answerPoints : []).forEach(addPoint);
+      if (!els.points.children.length) addPoint();
+      document.querySelectorAll('.mcq-option-input').forEach(input => { input.value = (q.options || [])[Number(input.dataset.index)] || ''; });
+      els.correct.value = String(q.correctAnswer || 0);
+      els.explanation.value = q.explanation || '';
+      updateEditorMode();
+      window.scrollTo({ top: document.querySelector('.admin-layout').offsetTop - 12, behavior: 'smooth' });
+    }
+
+    async function saveQuestion(forcedStatus) {
+      try {
+        setStatus(els.formStatus, 'Saving...');
+        const payload = getPayload(forcedStatus);
+        const editingId = els.editingId.value;
+        const path = editingId ? `/api/admin/questions/${encodeURIComponent(editingId)}` : '/api/admin/questions';
+        const method = editingId ? 'PUT' : 'POST';
+        await api(path, { method, body: JSON.stringify(payload) });
+        setStatus(els.formStatus, payload.status === 'published' ? 'Published question saved.' : 'Draft question saved.');
+        resetForm();
+        await loadQuestions();
+      } catch (err) {
+        setStatus(els.formStatus, err.message, true);
+      }
+    }
+
+    async function publishQuestion(id, published) {
+      try {
+        await api(`/api/admin/questions/${encodeURIComponent(id)}/publish`, { method: 'PATCH', body: JSON.stringify({ published }) });
+        await loadQuestions();
+      } catch (err) {
+        setStatus(els.listStatus, err.message, true);
+      }
+    }
+
+    async function deleteQuestion(id) {
+      if (!confirm('Are you sure you want to delete this question?')) return;
+      try {
+        await api(`/api/admin/questions/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        await loadQuestions();
+      } catch (err) {
+        setStatus(els.listStatus, err.message, true);
+      }
+    }
+
+    els.saveKey.addEventListener('click', () => {
+      sessionStorage.setItem('wbuhs_admin_key', els.adminKey.value.trim());
+      loadQuestions();
+    });
+    document.getElementById('addPointBtn').addEventListener('click', () => addPoint());
+    document.getElementById('resetFormBtn').addEventListener('click', resetForm);
+    document.getElementById('reloadBtn').addEventListener('click', loadQuestions);
+    document.getElementById('saveDraftBtn').addEventListener('click', () => saveQuestion('draft'));
+    els.marks.addEventListener('change', updateEditorMode);
+    els.form.addEventListener('submit', event => { event.preventDefault(); saveQuestion(); });
+    els.search.addEventListener('input', renderList);
+    els.filter.addEventListener('change', renderList);
+
+    resetForm();
+    loadQuestions();
+  </script>
 </body>
 </html>

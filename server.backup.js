@@ -1,4 +1,4 @@
-﻿require('dotenv').config();
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -9,14 +9,6 @@ const {
   generateBengaliExplanation,
   generateRelatedQuestions
 } = require('./ai-knowledge.js');
-const {
-  listQuestions,
-  getQuestion,
-  saveQuestion,
-  deleteQuestion,
-  setPublishState,
-  getCounts
-} = require('./question-store.js');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -36,31 +28,9 @@ app.use((req, res, next) => {
   next();
 });
 
-function noStore(res) {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.set('Pragma', 'no-cache');
-  res.set('Expires', '0');
-}
-
-function requireAdmin(req, res, next) {
-  const configuredKey = process.env.ADMIN_API_KEY;
-  if (!configuredKey) {
-    if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
-      return res.status(503).json({
-        ok: false,
-        error: 'Admin API is not configured. Set ADMIN_API_KEY in the deployment environment.'
-      });
-    }
-    return next();
-  }
-
-  const supplied = req.header('x-admin-key') || req.query.adminKey || '';
-  if (supplied === configuredKey) return next();
-  return res.status(401).json({ ok: false, error: 'Admin key required' });
-}
-
 // Serve static frontend files from both __dirname and process.cwd()
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.resolve(__dirname)));
+app.use(express.static(path.resolve(process.cwd())));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -72,99 +42,6 @@ app.get('/api/health', (req, res) => {
     mode: hasGemini ? 'gemini' : (hasOpenAI ? 'openai' : 'high-yield-knowledge-engine'),
     totalQuestions: QUESTIONS.length
   });
-});
-
-app.get('/api/questions', async (req, res) => {
-  try {
-    noStore(res);
-    const questions = await listQuestions({ marks: req.query.marks, includeDrafts: false });
-    res.json({
-      ok: true,
-      count: questions.length,
-      counts: getCounts(await listQuestions({ includeDrafts: false })),
-      questions
-    });
-  } catch (err) {
-    console.error('Error in /api/questions:', err);
-    res.status(500).json({ ok: false, error: 'Failed to load questions' });
-  }
-});
-
-app.get('/api/questions/:id', async (req, res) => {
-  try {
-    noStore(res);
-    const question = await getQuestion(req.params.id, { includeDrafts: false });
-    if (!question) return res.status(404).json({ ok: false, error: 'Question not found' });
-    res.json({ ok: true, question });
-  } catch (err) {
-    console.error('Error in /api/questions/:id:', err);
-    res.status(500).json({ ok: false, error: 'Failed to load question' });
-  }
-});
-
-app.get('/api/admin/questions', requireAdmin, async (req, res) => {
-  try {
-    noStore(res);
-    const questions = await listQuestions({ marks: req.query.marks, includeDrafts: true });
-    res.json({ ok: true, count: questions.length, counts: getCounts(questions), questions });
-  } catch (err) {
-    console.error('Error in /api/admin/questions:', err);
-    res.status(500).json({ ok: false, error: 'Failed to load admin questions' });
-  }
-});
-
-app.post('/api/admin/questions', requireAdmin, async (req, res) => {
-  try {
-    const saved = await saveQuestion(req.body || {});
-    noStore(res);
-    res.status(201).json({ ok: true, question: saved });
-  } catch (err) {
-    console.error('Error in POST /api/admin/questions:', err);
-    res.status(400).json({ ok: false, error: err.message || 'Failed to save question' });
-  }
-});
-
-app.put('/api/admin/questions/:id', requireAdmin, async (req, res) => {
-  try {
-    const existing = await getQuestion(req.params.id, { includeDrafts: true });
-    if (existing && existing.source === 'seed') {
-      return res.status(403).json({ ok: false, error: 'Built-in seed questions are preserved. Duplicate as a new admin question to modify.' });
-    }
-    const saved = await saveQuestion(req.body || {}, req.params.id);
-    noStore(res);
-    res.json({ ok: true, question: saved });
-  } catch (err) {
-    console.error('Error in PUT /api/admin/questions/:id:', err);
-    res.status(400).json({ ok: false, error: err.message || 'Failed to update question' });
-  }
-});
-
-app.delete('/api/admin/questions/:id', requireAdmin, async (req, res) => {
-  try {
-    const existing = await getQuestion(req.params.id, { includeDrafts: true });
-    if (existing && existing.source === 'seed') {
-      return res.status(403).json({ ok: false, error: 'Built-in seed questions cannot be deleted.' });
-    }
-    const removed = await deleteQuestion(req.params.id);
-    noStore(res);
-    res.json({ ok: true, deleted: removed });
-  } catch (err) {
-    console.error('Error in DELETE /api/admin/questions/:id:', err);
-    res.status(500).json({ ok: false, error: 'Failed to delete question' });
-  }
-});
-
-app.patch('/api/admin/questions/:id/publish', requireAdmin, async (req, res) => {
-  try {
-    const published = req.body && typeof req.body.published === 'boolean' ? req.body.published : true;
-    const question = await setPublishState(req.params.id, published);
-    if (!question) return res.status(404).json({ ok: false, error: 'Admin question not found' });
-    noStore(res);
-    res.json({ ok: true, question });
-  } catch (err) {
-    console.error('Error in PATCH /api/admin/questions/:id/publish:', err);
-    res.status(500).json({ ok: false, error: 'Failed to update publish state' });
-  }
 });
 
 /**
@@ -286,7 +163,7 @@ The explanation should sound like a patient, friendly nursing teacher teaching a
       systemInstruction += `\n\nWhen Bengali is selected:
 Explain in natural conversational Bengali suitable for a B.Sc. Nursing student.
 Do not translate word-by-word.
-Use Bengali for explanations but retain important medical terminology in English where it improves understanding (e.g., "Uterus à¦¬à¦¾ à¦œà¦°à¦¾à¦¯à¦¼à§", "delivery-à¦à¦° à¦ªà¦° à¦…à¦¤à¦¿à¦°à¦¿à¦•à§à¦¤ bleeding", "Hypertension à¦®à¦¾à¦¨à§‡ high blood pressure").
+Use Bengali for explanations but retain important medical terminology in English where it improves understanding (e.g., "Uterus বা জরায়ু", "delivery-এর পর অতিরিক্ত bleeding", "Hypertension মানে high blood pressure").
 Use simple sentences.
 Avoid highly literary Bengali.
 The student should be able to understand the explanation even if their English is weak.`;
@@ -599,4 +476,3 @@ if (require.main === module) {
 }
 
 module.exports = app;
-

@@ -14,13 +14,33 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body data-app-screen="welcome">
 <!-- Mobile Wrapper (Provides realistic phone simulator frame on desktop, 100% native on mobile) -->
 <div class="device-container">
   <div class="mobile-frame">
 
+    <!-- Opening experience and practice section chooser -->
+    <section id="welcomeScreen" class="startup-screen welcome-screen" aria-label="Welcome">
+      <div class="welcome-mark" aria-hidden="true"><span class="welcome-cross">+</span><span class="welcome-ecg"></span></div>
+      <div class="welcome-kicker">WBUHS</div><div class="welcome-school">B.Sc. Nursing</div>
+      <h1>Hi <span aria-hidden="true">👋</span><br><strong>Dr Sayantani</strong></h1>
+      <p class="welcome-title">Welcome to<br><strong>7th Semester!</strong></p>
+      <p class="welcome-motto">Small Steps Today,<br>Brighter Nurses Tomorrow <span aria-hidden="true">♥</span></p>
+      <p class="welcome-status">Preparing your study space...</p><button id="skipWelcomeBtn" class="startup-skip-btn" type="button">Skip →</button>
+    </section>
+    <section id="sectionSelectionScreen" class="startup-screen section-selection-screen" hidden aria-label="Choose practice section">
+      <div class="selection-heading"><div class="welcome-kicker">WBUHS • B.Sc. Nursing</div><p class="selection-semester">7th Semester</p><h1>Choose Your<br><strong>Practice Section</strong></h1><p>Select a question type to start your revision</p></div>
+      <div class="practice-card-grid">
+        <button class="practice-section-card practice-card-blue" type="button" data-practice-section="list"><span class="practice-card-icon">▤</span><span class="practice-card-title">2 MARKS</span><span class="practice-card-subtitle">High-Yield Practice Questions</span><span class="practice-card-meta">Quick revision • Important questions</span><span class="practice-card-cta">Start Practicing →</span></button>
+        <button class="practice-section-card practice-card-purple" type="button" data-practice-section="five-mark"><span class="practice-card-icon">✦</span><span class="practice-card-title">5 MARKS</span><span class="practice-card-subtitle">Long Answer Practice Questions</span><span class="practice-card-meta">Structured answers • Exam ready</span><span class="practice-card-cta">Start Practicing →</span></button>
+        <button class="practice-section-card practice-card-rose" type="button" data-practice-section="three-mark"><span class="practice-card-icon">✚</span><span class="practice-card-title">3 MARKS</span><span class="practice-card-subtitle">Important Short Answer Questions</span><span class="practice-card-meta">Focused points • Fast revision</span><span class="practice-card-cta">Start Practicing →</span></button>
+        <button class="practice-section-card practice-card-mint" type="button" data-practice-section="four-mark"><span class="practice-card-icon">✓</span><span class="practice-card-title">4 MARKS</span><span class="practice-card-subtitle">Detailed Revision Questions</span><span class="practice-card-meta">Key concepts • Clear answers</span><span class="practice-card-cta">Start Practicing →</span></button>
+        <button class="practice-section-card practice-card-gold" type="button" data-practice-section="mcq"><span class="practice-card-icon">?</span><span class="practice-card-title">MCQ</span><span class="practice-card-subtitle">Multiple Choice Questions</span><span class="practice-card-meta">Select • Submit • Learn</span><span class="practice-card-cta">Start Practicing →</span></button>
+      </div><p class="selection-motto">Better Nurses Build a Healthier Tomorrow <span aria-hidden="true">♥</span></p><button class="startup-skip-btn section-welcome-back-btn" type="button" data-back-welcome>← Back</button>
+    </section>
+
     <!-- Top App Bar -->
-    <header class="app-header">
+    <header class="app-header startup-app-content">
       <div class="header-main">
         <div class="header-brand">
           <div class="badge-tag">
@@ -104,10 +124,10 @@
     </header>
 
     <!-- Main Content Area -->
-    <main class="app-content">
+    <main class="app-content startup-app-content">
 
       <!-- ================= VIEW 1: QUESTIONS LIST ================= -->
-      <section id="viewList" class="view-panel active-view">
+      <section id="viewList" class="view-panel active-view"><button class="back-to-sections-btn section-back-button" type="button" data-back-sections>← Practice Sections</button>
         <!-- Search & Filters Container (Sticky) -->
         <div class="filter-sticky-bar">
           <div class="search-box">
@@ -335,8 +355,55 @@
         </div>
       </section>
 
+      <!-- ================= VIEW 5: 5-MARK QUESTION BANK ================= -->
+      <section id="viewFiveMark" class="view-panel" hidden><button class="back-to-sections-btn section-back-button" type="button" data-back-sections>← Practice Sections</button>
+        <div class="view-header-row">
+          <div>
+            <h2>5-Mark Questions</h2>
+            <p>Separate long-answer revision bank for WBUHS 5-mark preparation</p>
+          </div>
+          <span class="count-pill" id="fiveMarkCountBadge">0 Questions</span>
+        </div>
+
+        <div class="filter-sticky-bar">
+          <div class="search-box">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input id="fiveMarkSearchInput" type="search" placeholder="Search 5-mark topics or keywords..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <button id="fiveMarkSearchClearBtn" class="clear-btn" type="button" aria-label="Clear search" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <div class="chips-container" id="fiveMarkCategoryChips" role="tablist" aria-label="Filter 5-mark questions by subject"></div>
+        </div>
+
+        <div id="fiveMarkQuestionsContainer" class="questions-list" aria-live="polite"></div>
+
+        <div id="fiveMarkEmptyState" class="empty-state" hidden>
+          <div class="empty-icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              <line x1="8" y1="11" x2="14" y2="11"></line>
+            </svg>
+          </div>
+          <h3>No 5-mark questions found</h3>
+          <p>Try a different keyword or reset the filter.</p>
+          <button id="fiveMarkResetFilterBtn" class="pill-primary-btn" type="button">Reset Filters</button>
+        </div>
+      </section>
+      <section id="viewThreeMark" class="view-panel foundation-view" hidden><div class="view-header-row"><div><h2>3-Mark Questions</h2><p>Important short answer revision</p></div><button class="back-to-sections-btn" type="button" data-back-sections>← Practice Sections</button></div><div id="threeMarkQuestionsContainer" class="questions-list"></div></section>
+      <section id="viewFourMark" class="view-panel foundation-view" hidden><div class="view-header-row"><div><h2>4-Mark Questions</h2><p>Detailed revision questions</p></div><button class="back-to-sections-btn" type="button" data-back-sections>← Practice Sections</button></div><div id="fourMarkQuestionsContainer" class="questions-list"></div></section>
+      <section id="viewMcq" class="view-panel foundation-view" hidden><div class="view-header-row"><div><h2>MCQ Practice</h2><p>Choose the best answer and learn why</p></div><button class="back-to-sections-btn" type="button" data-back-sections>← Practice Sections</button></div><div id="mcqQuestionsContainer" class="mcq-list"></div></section>
+
       <!-- Informational Disclaimer Footer -->
-      <footer class="app-footer">
+      <footer class="app-footer startup-app-content">
         <div class="footer-card">
           <div class="footer-title">WBUHS Exam Notes</div>
           <p>This revision tool provides exam-style concise points for 2-mark university questions across Midwifery, Newborn, Lactation, Community Health II, and Research/Statistics. Always consult standard textbooks and official university curriculum guidelines.</p>
@@ -346,7 +413,7 @@
     </main>
 
     <!-- Floating Audio Mini Player Bar -->
-    <div id="voicePlayerBar" class="voice-player-bar" hidden>
+    <div id="voicePlayerBar" class="voice-player-bar startup-app-content" hidden>
       <div class="player-info">
         <span class="player-pulse-dot"></span>
         <div class="player-meta">
@@ -372,7 +439,7 @@
     </div>
 
     <!-- Bottom Navigation Dock -->
-    <nav class="bottom-dock" role="navigation" aria-label="Bottom Navigation">
+    <nav class="bottom-dock startup-app-content" role="navigation" aria-label="Bottom Navigation">
       <button class="dock-tab active" data-tab="list" type="button" aria-label="Browse all questions">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="8" y1="6" x2="21" y2="6"></line>
@@ -412,6 +479,15 @@
           <span class="dock-badge green" id="dockMasteredBadge" hidden>0</span>
         </div>
         <span>Mastery</span>
+      </button>
+
+      <button class="dock-tab" data-tab="five-mark" type="button" aria-label="5-mark questions">
+        <div class="dock-icon-wrapper">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M7 3h10a2 2 0 0 1 2 2v14l-4-3-4 3-4-3-4 3V5a2 2 0 0 1 2-2z"></path>
+          </svg>
+        </div>
+        <span>5-Mark</span>
       </button>
     </nav>
 
@@ -465,6 +541,10 @@
 </div>
 
 <script src="data.js"></script>
+<script src="fiveMarkData.js"></script>
+<script src="threeMarkData.js"></script>
+<script src="fourMarkData.js"></script>
+<script src="mcqData.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
