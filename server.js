@@ -1,4 +1,4 @@
-require('dotenv').config();
+﻿require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -29,8 +29,7 @@ app.use((req, res, next) => {
 });
 
 // Serve static frontend files from both __dirname and process.cwd()
-app.use(express.static(path.resolve(__dirname)));
-app.use(express.static(path.resolve(process.cwd())));
+app.use(express.static(path.join(__dirname, "public")));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -163,7 +162,7 @@ The explanation should sound like a patient, friendly nursing teacher teaching a
       systemInstruction += `\n\nWhen Bengali is selected:
 Explain in natural conversational Bengali suitable for a B.Sc. Nursing student.
 Do not translate word-by-word.
-Use Bengali for explanations but retain important medical terminology in English where it improves understanding (e.g., "Uterus বা জরায়ু", "delivery-এর পর অতিরিক্ত bleeding", "Hypertension মানে high blood pressure").
+Use Bengali for explanations but retain important medical terminology in English where it improves understanding (e.g., "Uterus à¦¬à¦¾ à¦œà¦°à¦¾à¦¯à¦¼à§", "delivery-à¦à¦° à¦ªà¦° à¦…à¦¤à¦¿à¦°à¦¿à¦•à§à¦¤ bleeding", "Hypertension à¦®à¦¾à¦¨à§‡ high blood pressure").
 Use simple sentences.
 Avoid highly literary Bengali.
 The student should be able to understand the explanation even if their English is weak.`;
@@ -476,3 +475,4 @@ if (require.main === module) {
 }
 
 module.exports = app;
+
