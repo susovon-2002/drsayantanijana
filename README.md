@@ -5,9 +5,12 @@
 
 ---
 
-### 🌐 Live Hosted Links (GitHub Pages)
-- **Main Student Website:** https://susovon-2002.github.io/DR-SAYANTANI/
-- **Admin Study Verification Portal:** https://susovon-2002.github.io/DR-SAYANTANI/admin.html
+### 🌐 Deployment
+This project is configured for Vercel hosting with a Node server.
+- **Main Student Website:** your Vercel production URL after deployment
+- **Admin Study Verification Portal:** your Vercel production URL + /admin
+
+If the app shows a Not Found page, redeploy the repo after the latest config update.
 
 ---
 
