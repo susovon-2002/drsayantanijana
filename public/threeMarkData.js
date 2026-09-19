@@ -161,5 +161,6 @@ const THREE_MARK_QUESTIONS = [
   }
 ];
 if (typeof window !== 'undefined') window.THREE_MARK_QUESTIONS = THREE_MARK_QUESTIONS;
+if (typeof module !== 'undefined') module.exports = { THREE_MARK_QUESTIONS };
 
 

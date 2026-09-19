@@ -84,6 +84,10 @@
       item.answer_version = item.answer_version || 'server-v1';
       item.q = item.q || item.question;
       item.a = item.a || item.answer;
+      item.answer = item.answer || item.a || '';
+      if (Array.isArray(item.answerPoints) && item.answerPoints.length === 0) {
+        delete item.answerPoints;
+      }
     });
 
     fiveMarkQuestions.forEach((item, index) => {
@@ -135,7 +139,30 @@
       if (!data || !data.ok || !Array.isArray(data.questions)) return;
 
       const written = data.questions.filter(q => q.type !== 'mcq');
-      replaceArrayContents(allQuestions, written.filter(q => Number(q.marks) === 2));
+      const serverTwoMark = written.filter(q => Number(q.marks) === 2);
+
+      // Fallback rule: Ensure local 2-Mark question data is used whenever the API does not return a complete answer.
+      // Never replace a valid local answer with an empty/null API answer.
+      if (serverTwoMark.length > 0) {
+        const localMap = new Map(allQuestions.map(q => [String(q.id), q]));
+        const mergedTwoMark = serverTwoMark.map(sq => {
+          const lq = localMap.get(String(sq.id));
+          const sqAnswer = (sq.answer || sq.a || '').trim();
+          if (!sqAnswer && lq) {
+            return { ...sq, answer: lq.answer || lq.a, a: lq.a || lq.answer };
+          }
+          return sq;
+        });
+        const serverIdSet = new Set(serverTwoMark.map(q => String(q.id)));
+        allQuestions.forEach(lq => {
+          if (!serverIdSet.has(String(lq.id))) {
+            mergedTwoMark.push(lq);
+          }
+        });
+        mergedTwoMark.sort((a, b) => Number(a.id) - Number(b.id));
+        replaceArrayContents(allQuestions, mergedTwoMark);
+      }
+
       replaceArrayContents(threeMarkQuestions, written.filter(q => Number(q.marks) === 3));
       replaceArrayContents(fourMarkQuestions, written.filter(q => Number(q.marks) === 4));
       replaceArrayContents(fiveMarkQuestions, written.filter(q => Number(q.marks) === 5));
@@ -1593,10 +1620,11 @@
     const isMastered = masteredIds.has(item.id);
     const isCardOpen = isAllExpanded || (activeTimerState && activeTimerState.questionId === item.id);
 
+    const hasStructuredPoints = Array.isArray(item.answerPoints) && item.answerPoints.length > 0;
     const highlightedQuestion = highlightMatches(item.question, searchTerm);
-    const highlightedAnswer = highlightMatches(item.answer, searchTerm);
-    const answerHtml = Array.isArray(item.answerPoints)
-      ? `<div class="structured-answer">${item.answerDefinitionLines ? `<div class="answer-definition-label">DEFINITION</div><div class="answer-definition">${item.answerDefinitionLines.map(line => `<div>${escapeHtml(line)}</div>`).join('')}</div>` : ''}<h3>${escapeHtml(item.answerTitle || 'EXAM ANSWER')}</h3>${item.answerPoints.map((point, index) => `<div class="answer-point"><span class="answer-point-number">${index + 1}</span><div><strong>${escapeHtml(point.heading)}</strong><p>${escapeHtml(point.text)}</p></div></div>`).join('')}</div>`
+    const highlightedAnswer = highlightMatches(item.answer || item.a || '', searchTerm);
+    const answerHtml = hasStructuredPoints
+      ? `<div class="structured-answer">${item.answerDefinitionLines && item.answerDefinitionLines.length > 0 ? `<div class="answer-definition-label">DEFINITION</div><div class="answer-definition">${item.answerDefinitionLines.map(line => `<div>${escapeHtml(line)}</div>`).join('')}</div>` : ''}<h3>${escapeHtml(item.answerTitle || 'EXAM ANSWER')}</h3>${item.answerPoints.map((point, index) => `<div class="answer-point"><span class="answer-point-number">${index + 1}</span><div><strong>${escapeHtml(point.heading)}</strong><p>${escapeHtml(point.text)}</p></div></div>`).join('')}</div>`
       : highlightedAnswer;
 
     const settings = getCardSettings(item.id);
@@ -1624,7 +1652,7 @@
     const progressPercent = isCompletedTimer ? 100 : (isThisActiveTimer ? ((STUDY_TIMER_SECONDS - remainingSec) / STUDY_TIMER_SECONDS) * 100 : 0);
 
     return `
-      <article class="qcard ${isCardOpen ? 'open' : ''} ${isMastered ? 'mastered' : ''} ${item.answerPoints ? 'structured-five-mark-card' : ''}" id="card_${item.id}" data-id="${item.id}">
+      <article class="qcard ${isCardOpen ? 'open' : ''} ${isMastered ? 'mastered' : ''} ${hasStructuredPoints ? 'structured-five-mark-card' : ''}" id="card_${item.id}" data-id="${item.id}">
         <button type="button" class="qbutton" aria-expanded="${isCardOpen}" aria-controls="answer_${item.id}">
           <div class="qheader-top">
             <span class="num-badge">${item.displayIndex}</span>

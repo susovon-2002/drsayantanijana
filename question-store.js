@@ -1,6 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const { QUESTIONS } = require('./data.js');
+const { THREE_MARK_QUESTIONS } = require('./threeMarkData.js');
+const { FOUR_MARK_QUESTIONS } = require('./fourMarkData.js');
+const { FIVE_MARK_QUESTIONS } = require('./fiveMarkData.js');
+const { MCQ_QUESTIONS } = require('./mcqData.js');
 
 let cachedBlobClient = null;
 
@@ -26,32 +30,19 @@ function toSlug(value) {
     .slice(0, 80);
 }
 
-function readJsArray(fileName, globalName) {
-  const filePath = path.join(__dirname, fileName);
-  if (!fs.existsSync(filePath)) return [];
-  const text = fs.readFileSync(filePath, 'utf8');
-  const body = text
-    .replace(new RegExp(`^\\s*const\\s+${globalName}\\s*=\\s*`), 'module.exports = ')
-    .replace(/\nif \(typeof window[\s\S]*$/m, '');
-  const mod = { exports: [] };
-  const fn = new Function('module', 'exports', body);
-  fn(mod, mod.exports);
-  return Array.isArray(mod.exports) ? mod.exports : [];
-}
-
 function normalizeWrittenQuestion(raw, marks) {
   const id = raw.id || `${marks}m-${toSlug(raw.question || raw.q || raw.topic || Date.now())}`;
-  const answerPoints = Array.isArray(raw.answerPoints) ? raw.answerPoints : [];
-  const definitionLines = Array.isArray(raw.answerDefinitionLines)
+  const answerPoints = Array.isArray(raw.answerPoints) && raw.answerPoints.length > 0 ? raw.answerPoints : undefined;
+  const definitionLines = Array.isArray(raw.answerDefinitionLines) && raw.answerDefinitionLines.length > 0
     ? raw.answerDefinitionLines
     : (raw.definition ? [raw.definition] : []);
   const flatAnswer = raw.answer || raw.a || [
     ...definitionLines,
-    ...answerPoints.map((point, index) => `${index + 1}. ${point.heading || `Point ${index + 1}`}: ${point.text || point.description || ''}`),
+    ...(answerPoints || []).map((point, index) => `${index + 1}. ${point.heading || `Point ${index + 1}`}: ${point.text || point.description || ''}`),
     raw.additionalNotes || raw.conclusion || ''
   ].filter(Boolean).join('\n\n');
 
-  return {
+  const normalized = {
     id,
     source: raw.source || 'admin',
     marks,
@@ -67,9 +58,6 @@ function normalizeWrittenQuestion(raw, marks) {
     answer: flatAnswer,
     a: flatAnswer,
     answerTitle: raw.answerTitle || raw.title || '',
-    answerDefinitionLines: definitionLines,
-    definition: definitionLines.join('\n'),
-    answerPoints,
     additionalNotes: raw.additionalNotes || '',
     conclusion: raw.conclusion || '',
     keywords: Array.isArray(raw.keywords) ? raw.keywords : [],
@@ -78,6 +66,16 @@ function normalizeWrittenQuestion(raw, marks) {
     updatedAt: raw.updatedAt || null,
     publishedAt: raw.publishedAt || null
   };
+
+  if (definitionLines.length > 0) {
+    normalized.answerDefinitionLines = definitionLines;
+    normalized.definition = definitionLines.join('\n');
+  }
+  if (answerPoints) {
+    normalized.answerPoints = answerPoints;
+  }
+
+  return normalized;
 }
 
 function normalizeMcq(raw) {
@@ -136,13 +134,13 @@ function validateQuestion(question) {
 
 function getSeedQuestions() {
   const twoMark = QUESTIONS.map(q => normalizeWrittenQuestion({ ...q, source: 'seed', marks: 2, status: 'published' }, 2));
-  const threeMark = readJsArray('threeMarkData.js', 'THREE_MARK_QUESTIONS')
+  const threeMark = THREE_MARK_QUESTIONS
     .map(q => normalizeWrittenQuestion({ ...q, source: 'seed', marks: 3, status: 'published' }, 3));
-  const fourMark = readJsArray('fourMarkData.js', 'FOUR_MARK_QUESTIONS')
+  const fourMark = FOUR_MARK_QUESTIONS
     .map(q => normalizeWrittenQuestion({ ...q, source: 'seed', marks: 4, status: 'published' }, 4));
-  const fiveMark = readJsArray('fiveMarkData.js', 'FIVE_MARK_QUESTIONS')
+  const fiveMark = FIVE_MARK_QUESTIONS
     .map(q => normalizeWrittenQuestion({ ...q, source: 'seed', marks: 5, status: 'published' }, 5));
-  const mcq = readJsArray('mcqData.js', 'MCQ_QUESTIONS')
+  const mcq = MCQ_QUESTIONS
     .map(q => normalizeMcq({ ...q, source: 'seed', status: 'published' }));
   return [...twoMark, ...threeMark, ...fourMark, ...fiveMark, ...mcq];
 }

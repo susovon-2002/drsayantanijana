@@ -435,4 +435,5 @@ const FIVE_MARK_QUESTIONS = [
 if (typeof window !== 'undefined') {
   window.FIVE_MARK_QUESTIONS = FIVE_MARK_QUESTIONS;
 }
+if (typeof module !== 'undefined') module.exports = { FIVE_MARK_QUESTIONS };
 

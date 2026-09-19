@@ -261,3 +261,4 @@ const FOUR_MARK_QUESTIONS = [
   }
 ];
 if (typeof window !== 'undefined') window.FOUR_MARK_QUESTIONS = FOUR_MARK_QUESTIONS;
+if (typeof module !== 'undefined') module.exports = { FOUR_MARK_QUESTIONS };
